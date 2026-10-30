@@ -119,3 +119,12 @@ weapon-glow-probe/
 ._*
 Thumbs.db
 desktop.ini
+dfo_dragon_locator.mjs
+dfo_dragon_locator_countdown.mjs
+dfo_dragon_locator_fixed.mjs
+README.txt
+README_Countdown.txt
+README_Dragon_Locator.txt
+Run_DFO_Dragon_Live_Locator.bat
+Run_DFO_Dragon_Locator_Countdown.bat
+dfo_dragon_live_locator.mjs
