@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { HunterGeometry, HunterCatalog, NavigationRequest, NavigationResult } from '../../../shared/hunterTypes'
 import { Navigation } from './Navigation'
+import {validMapFocus} from './mapState'
+import {NavigationBoundary} from './NavigationBoundary'
 
 export function XRay({ geometry: g, catalog, navigation, coffer, busy=false, onNavigate }: { geometry: HunterGeometry; catalog: HunterCatalog | null; navigation?: NavigationResult; coffer?:import('../../../shared/jackpotTypes').JackpotStatus['aurum']; busy?: boolean; onNavigate: (request:NavigationRequest)=>void }) {
   const full = { x:g.bounds.x0-3, y:-g.bounds.z1-3, w:g.bounds.x1-g.bounds.x0+6, h:g.bounds.z1-g.bounds.z0+6 }
@@ -17,7 +19,7 @@ export function XRay({ geometry: g, catalog, navigation, coffer, busy=false, onN
   const markers = g.enemies.filter(e=>e.sheet===floor && (species===-1 || e.mobileType===species) && (copies || !e.eliteCopy))
   const name = (id:number) => catalog?.species.find(s=>s.id===id)?.name ?? `Mobile ${id}`
   const radius = Math.max(.08,view.w/220)
-  function focus(at:number[],sheet:number){setFloor(sheet);setView(v=>({...v,x:at[0]-v.w/2,y:-at[2]-v.h/2}))}
+  function focus(at:number[],sheet:number){if(!validMapFocus(g,at,sheet)){setInspect({kind:'Unverified floor projection',at,sheet,reason:'No matching reconstructed map floor; current view retained.'});return}setFloor(sheet);setView(v=>({...v,x:at[0]-v.w/2,y:-at[2]-v.h/2}))}
   const routePath=(points:{at:number[];sheet:number}[])=>points.map((p,i)=>p.sheet===floor?`${i>0&&points[i-1].sheet===floor?'L':'M'}${p.at[0]},${-p.at[2]}`:'').join(' ')
   function zoom(factor:number, anchor?:{x:number;y:number}) {
     setView(v=>{
@@ -84,7 +86,7 @@ export function XRay({ geometry: g, catalog, navigation, coffer, busy=false, onN
     {navigation&&<p className="xray-legend">Green arrows: motor-validated outbound traces · blue dashed: validated return · purple: walk-in navigation start · pink: verified ordinary-door interaction. No route is drawn for Unverified objectives. Traces stop at floor boundaries and continue on their matching floors.</p>}
     <details><summary>Inspect enemy records on this floor ({markers.length})</summary><p>Use this list when markers overlap; their coordinates are never spread artificially.</p><div className="hunter-table"><table><thead><tr><th>Species</th><th>Origin</th><th>XYZ metres</th><th>Inspect</th></tr></thead><tbody>{markers.map(e=><tr key={e.id}><td>{name(e.mobileType)} ({e.mobileType})</td><td>{e.fixed?'fixed':'resolved random'} / {e.eliteCopy?'Elite copy':'base'}</td><td>{e.x.toFixed(2)}, {e.y.toFixed(2)}, {e.z.toFixed(2)}</td><td><button onClick={()=>setInspect({kind:e.fixed?'Fixed enemy':'Resolved random enemy',species:name(e.mobileType),...e})}>Inspect {e.id}</button></td></tr>)}</tbody></table></div></details>
     {inspect && <div className="xray-inspector" role="status"><h3>Inspect marker</h3><pre>{JSON.stringify(inspect,null,2)}</pre></div>}
-    <Navigation geometry={g} result={navigation} busy={busy} inspectedId={typeof inspect?.id==='string'?inspect.id:undefined} onNavigate={onNavigate} onFocus={focus}/>
+    <NavigationBoundary key={navigation?JSON.stringify([navigation.mapId,navigation.profile,navigation.stats]):'no-route'}><Navigation geometry={g} result={navigation} busy={busy} inspectedId={typeof inspect?.id==='string'?inspect.id:undefined} onNavigate={onNavigate} onFocus={focus}/></NavigationBoundary>
     <details><summary>Geometry provenance and limitations</summary>{g.warnings.map(w=><p key={w}>{w}</p>)}<pre>{JSON.stringify({stats:g.stats,source:g.provenance.sourceFingerprint,assets:g.provenance.assetHashes,worldData:g.provenance.worldData?.fingerprint,request:g.request},null,2)}</pre></details>
   </section>
 }

@@ -102,7 +102,7 @@ export class HunterService {
     try {
     await this.cancel()
     const id = this.current.id + 1
-    this.current = { id, state: 'running', catalog: this.current.catalog, jackpot:this.current.jackpot, ...((mapSpec||jackpot) ? { scan: this.current.scan } : {}), ...((mapSpec?.navigation||jackpot) ? {geometry:this.current.geometry,navigation:this.current.navigation}:{}), progress: { phase: 'Validating files and loading algorithms' } }
+    this.current = { id, state: 'running', catalog: this.current.catalog, jackpot:this.current.jackpot, ...((mapSpec||jackpot) ? { scan: this.current.scan } : {}), ...((mapSpec?.navigation||jackpot) ? {geometry:this.current.geometry,navigation:mapSpec?.navigation?undefined:this.current.navigation}:{}), progress: { phase: 'Validating files and loading algorithms' } }
     if (request) this.saveHistory({ ...this.history(), lastRequest: request })
     const worker = new Worker(this.workerPath, { workerData: { settings, request, mapSpec,jackpot, appPath:process.env.KARAOPS_APP_PATH, dataDir: this.dataDir }, resourceLimits: { maxOldGenerationSizeMb:1536 } })
     this.worker = worker
@@ -116,7 +116,7 @@ export class HunterService {
       if (message.kind === 'progress') this.current = { ...this.current, progress: message.value }
       if(message.kind==='jackpot'){
         if(message.value.aurum){let approval:{approved?:boolean;authority?:string;evidence?:string}={};try{approval=JSON.parse(readFileSync(join(this.dataDir,'coffer-approval.json'),'utf8'))}catch{};if(!approval.approved||!approval.authority?.trim()||!approval.evidence?.trim()){const {foot,sheet,pile,navigationResult,...ordinary}=message.value.aurum;message.value.aurum={...ordinary,approved:false}}}
-        this.current={...this.current,state:'complete',jackpot:{library:[],...this.current.jackpot,...message.value},catalog:message.value.catalog??this.current.catalog,progress:{phase:'Jackpot ready'}};finish()}
+        this.current={...this.current,state:'complete',...(message.value.aurum?.approved&&message.value.aurum?.navigationResult?{navigation:undefined}:{}),jackpot:{library:[],...this.current.jackpot,...message.value},catalog:message.value.catalog??this.current.catalog,progress:{phase:'Jackpot ready'}};finish()}
       if(message.kind==='inspect'){this.current={...this.current,state:'complete',scan:message.value,geometry:undefined,navigation:undefined,progress:{phase:'Captured dungeon selected; rebuild map to verify current inputs'}};finish()}
       if (message.kind === 'complete') { this.current = { ...this.current, state: 'complete', ...(mapSpec?.navigation ? {navigation:message.value} : mapSpec ? { geometry: message.value } : request ? { scan: message.value } : { catalog: message.value }), progress: { phase: mapSpec?.navigation?'Navigation analysis ready':mapSpec ? '2D map ready' : request ? message.value.stats.phase : 'Data validated' } }; finish() }
       if (message.kind === 'error') { this.current = { ...this.current, state: 'analysis_error', error: message.message }; finish() }

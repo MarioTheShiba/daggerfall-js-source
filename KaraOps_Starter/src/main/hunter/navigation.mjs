@@ -1,6 +1,11 @@
 import { assembleGeometry } from './geometry.mjs'
 import { actionIndex } from './actions.mjs'
 
+export function proposalGrid(area,base=.25,maxCells=750000){
+  if(!Number.isFinite(area)||area<0||!Number.isFinite(base)||base<=0)return null
+  return [base,base*1.4,base*2].find(cs=>area/(cs*cs)<=maxCells)??null
+}
+
 export function navigationRequest(value,coffer=false){
   if(!value||typeof value!=='object')throw new Error('Invalid navigation request')
   if(!['single','species','tour','between'].includes(value.goal))throw new Error('Invalid route goal')
@@ -44,8 +49,13 @@ export async function navigate(game,spec,input,progress=()=>{},limits={}){
   const xs=[],zs=[];for(let i=0;i<soup.positions.length;i+=3){xs.push(soup.positions[i]);zs.push(soup.positions[i+2])}
   const extent=axis=>axis.reduce((a,x)=>[Math.min(a[0],x),Math.max(a[1],x)],[Infinity,-Infinity])
   const [x0,x1]=extent(xs),[z0,z1]=extent(zs)
-  if((x1-x0)*(z1-z0)/(.25*.25)>750000||soup.tris>80000)throw new Error('NAV_BUDGET: source bake exceeds safe cell/triangle budget; no impossibility conclusion')
-  const ag={...bake.SOUP_AGENT,height:motor.CAPSULE_HEIGHT,maxStep:Math.min(bake.SOUP_AGENT.maxStep,motor.STEP_OFFSET)}
+  const cs=proposalGrid((x1-x0)*(z1-z0),bake.SOUP_AGENT.cs)
+  if(cs===null||soup.tris>80000)return {schema:1,mapId:geometry.mapId,profile,status:'unknown',completeModel:false,provenance:game.provenance,
+    outcomes:targets.map(e=>({id:e.id,status:'unknown',reasons:['Navigation proposal exceeds bounded grid/triangle budget; not proof of impossibility.']})),routes:[],steps:[],mechanisms,failures:[],entrance:{at:entrance,sheet:context.sheetAt(entrance[1])},
+    exit:profile.returnToEntrance?{id:'entrance',status:'unknown',reasons:['Return route was not searched because the navigation bake exceeded its budget.']}:null,
+    assumptions:['Reconstructed geometry is retained. No unvalidated path, straight-line shortcut or impossibility claim is produced.'],stats:{targets:targets.length,reached:0,probes:0,elapsedMs:Math.round(performance.now()-started),polys:0,cells:0,cs:bake.SOUP_AGENT.cs,outOfBudget:true}}
+  const ag={...bake.SOUP_AGENT,cs,height:motor.CAPSULE_HEIGHT,maxStep:Math.min(bake.SOUP_AGENT.maxStep,motor.STEP_OFFSET)}
+  if(cs!==bake.SOUP_AGENT.cs)progress({phase:`Large dungeon: ${cs.toFixed(2)}m source proposal grid; every route still requires capsule-motor replay`})
   const baked=bake.bakeSoup(soup.positions,soup.indices,{floor:soup.minY-10,anchor:start,anchors:enemies.map(landed),agent:ag})
   const failures=[],conditions=[...initialDoorStates],routes=[],steps=[]
   let probes=0,current=[...start],outOfBudget=false
@@ -144,5 +154,5 @@ export async function navigate(game,spec,input,progress=()=>{},limits={}){
   if(exit?.points){routes.push({kind:'return',...exit});steps.push({kind:'exit',at:exit.end,sheet:context.sheetAt(exit.end[1]),text:'Return to the source walk-in entrance landing; exiting the game instance is a manual action.'})}
   const reached=outcomes.filter(o=>o.points).length
   const status=reached===0?'unknown':reached<outcomes.length||(exit&&!exit.points)?'partially_reachable':[...outcomes,...(exit?[exit]:[])].some(o=>o.status==='reachable_with_conditions')?'reachable_with_conditions':'reachable'
-  return {schema:1,mapId:geometry.mapId,profile,status,outcomes,routes,steps,exit,mechanisms,entrance:{at:entrance,sheet:context.sheetAt(entrance[1])},stats:{...baked.stats,targets:outcomes.length,reached,probes,elapsedMs:Math.round(performance.now()-started),outOfBudget},failures:failures.map(f=>({...f,sheet:f.at?context.sheetAt(f.at[1]):-1})),assumptions:['Fresh static source geometry; source startMarker walk-in landing (or selected marker start); standing walking only. No combat, swimming, climbing, jumping, levitation or dynamic mover timing.',`Maximum modeled drop ${profile.maxDrop}m; source PlayerMotor fixed 60Hz, speed 50; user-declared door states are assumptions.`, 'Source navBake uses 0.25m cells; candidate paths are replayed through the real capsule motor. Missing sampled edges never prove impossibility.', 'Multi-target order is nearest-next heuristic, not a globally shortest tour. Up to 128 base objectives per species request; Elite copies may be selected individually.', 'Action chains/secrets/teleport destinations are indexed from source. Unsupported automatic triggers stop validation; teleporters/movers are not yet route transitions.'],provenance:game.provenance,completeModel:false}
+  return {schema:1,mapId:geometry.mapId,profile,status,outcomes,routes,steps,exit,mechanisms,entrance:{at:entrance,sheet:context.sheetAt(entrance[1])},stats:{...baked.stats,targets:outcomes.length,reached,probes,elapsedMs:Math.round(performance.now()-started),outOfBudget},failures:failures.map(f=>({...f,sheet:f.at?context.sheetAt(f.at[1]):-1})),assumptions:['Fresh static source geometry; source startMarker walk-in landing (or selected marker start); standing walking only. No combat, swimming, climbing, jumping, levitation or dynamic mover timing.',`Maximum modeled drop ${profile.maxDrop}m; source PlayerMotor fixed 60Hz, speed 50; user-declared door states are assumptions.`, `Source navBake uses ${ag.cs}m proposal cells${ag.cs!==bake.SOUP_AGENT.cs?' (coarser large-dungeon fallback; narrow connections may be missed)':''}; every candidate is replayed through the real capsule motor. Missing sampled edges never prove impossibility.`, 'Multi-target order is nearest-next heuristic, not a globally shortest tour. Up to 128 base objectives per species request; Elite copies may be selected individually.', 'Action chains/secrets/teleport destinations are indexed from source. Unsupported automatic triggers stop validation; teleporters/movers are not yet route transitions.'],provenance:game.provenance,completeModel:false}
 }

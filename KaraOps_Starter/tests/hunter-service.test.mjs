@@ -49,3 +49,17 @@ test('missing folders produce analysis_error; corrupt history does not reset app
   assert.ok(readFileSync(join(dir, 'settings.json'), 'utf8').includes('keep'))
   await assert.rejects(() => service.start({ arena2Path: '', dfoSourcePath: '' }, request))
 })
+
+test('route worker errors preserve the map and clear stale routes across job lifecycle',async()=>{
+ const dir=mkdtempSync(join(tmpdir(),'kara-nav-retain-')),path=join(dir,'controlled.mjs')
+ writeFileSync(path,`import {parentPort,workerData} from 'node:worker_threads';
+ if(workerData.mapSpec?.navigation)setTimeout(()=>parentPort.postMessage({kind:'error',message:'NAV_BUDGET: regression fixture'}),30);
+ else parentPort.postMessage({kind:'complete',value:workerData.mapSpec?{mapId:1,px:780,py:100,provenance:{}}:{request:workerData.request,provenance:{},stats:{phase:'Complete'},results:[{mapId:1,px:780,py:100}]}});`)
+ const s=new HunterService(path,dir),settings={arena2Path:'selected',dfoSourcePath:'selected'}
+ const finish=async()=>{for(let i=0;i<100&&s.status().state==='running';i++)await new Promise(r=>setTimeout(r,10));assert.notEqual(s.status().state,'running')}
+ await s.start(settings,request);await finish();await s.map(settings,1);await finish();const geometry=s.status().geometry
+ await s.navigate(settings,1,{goal:'single',targetIds:['enemy:0'],startId:'entrance',species:34,openDoors:true,returnToEntrance:true,openSpellLevel:0,maxDrop:0,doorStates:{}})
+ assert.equal(s.status().geometry,geometry);assert.equal(s.status().navigation,undefined)
+ await finish();assert.equal(s.status().state,'analysis_error');assert.equal(s.status().geometry,geometry)
+ await s.cancel()
+})

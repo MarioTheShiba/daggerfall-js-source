@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { HunterCatalog, HunterHistory, HunterResult, HunterStatus, ScanRequest, NavigationRequest } from '../../../shared/hunterTypes'
 import { XRay } from './XRay'
 import {Jackpot} from './Jackpot'
+import {retainedMap,shownNavigation} from './mapState'
 
 const initial: ScanRequest = { px: 780, py: 100, radius: 15, species: 34, level: 1, region: -1, minTargets: 1, eliteOnly: true, alternate: false, profile: 'dex-mudex' }
 const bridge = () => window.karaops.hunter
@@ -61,6 +62,7 @@ export function Hunter() {
   }
   const results = [...(status.scan?.results ?? [])].sort((a, b) => sort === 'distance' ? a.distance - b.distance :sort==='province'?a.province.localeCompare(b.province)||b.count-a.count:sort==='purity'?b.dragonlingPercentage-a.dragonlingPercentage||b.count-a.count:b.count - a.count || a.distance - b.distance)
   const selected = results.find(r => r.mapId === selection) ?? results[0]
+  const geometry=retainedMap(status,selected?.mapId)
   const progress = busy || status.geometry || status.state==='analysis_error' ? status.progress : status.scan?.stats ?? status.progress
   const provenance = status.scan?.provenance ?? catalog?.provenance
   return <section className="hunter">
@@ -129,7 +131,11 @@ export function Hunter() {
         <button disabled={busy} onClick={() => void observe(true)}>Save target</button> <button disabled={busy || actual === '' || !Number.isInteger(Number(actual))} onClick={() => void observe(false)}>Record visit</button>
       </article>}
     </div>}
-    {status.geometry && status.state!=='analysis_error' && status.geometry.mapId===selected?.mapId && <XRay key={`${status.geometry.mapId}:${status.geometry.cache?.key??status.geometry.provenance.sourceFingerprint}`} geometry={status.geometry} catalog={catalog} coffer={status.jackpot?.aurum?.mapId===status.geometry.mapId?status.jackpot.aurum:undefined} navigation={status.jackpot?.aurum?.mapId===status.geometry.mapId&&status.jackpot.aurum.approved&&status.jackpot.aurum.navigationResult?status.jackpot.aurum.navigationResult:status.navigation} busy={busy} onNavigate={request=>void navigate(request)}/>}
+    {geometry&&<>
+      {status.state==='analysis_error'&&<p role="status">The last reconstructed map is retained. The latest analysis failed; its route is Unverified. See the diagnostic above. Reopen the map to verify changed source/assets.</p>}
+      {status.state==='cancelled'&&<p role="status">Analysis cancelled. The reconstructed map is retained; no route from the cancelled job is displayed.</p>}
+      <XRay key={`${geometry.mapId}:${geometry.cache?.key??geometry.provenance.sourceFingerprint}`} geometry={geometry} catalog={catalog} coffer={status.jackpot?.aurum?.mapId===geometry.mapId?status.jackpot.aurum:undefined} navigation={shownNavigation(status,geometry)} busy={busy} onNavigate={request=>void navigate(request)}/>
+    </>}
     {provenance && <details><summary>Source / asset provenance and limits</summary><p>{provenance.scope}</p>{provenance.warnings.map(w => <p key={w}>{w}</p>)}<pre>{JSON.stringify(provenance, null, 2)}</pre></details>}
     <details><summary>Saved targets and manual observations ({history.observations.length})</summary>{[...history.observations].reverse().map((o, i) => <p key={i}>{o.name} · {new Date(o.observedAt).toLocaleString()} · {o.actualCount === null ? 'Bookmark' : `Saw ${o.actualCount}`} · {o.notes}<br/><small>Source {o.sourceFingerprint.slice(0, 16)} · level {o.request.level} · {o.request.profile}. Historical, not current live state.</small></p>)}</details>
   </section>
