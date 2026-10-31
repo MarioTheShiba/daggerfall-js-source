@@ -90,6 +90,7 @@ try {
    @{baseline=$true;version=$ExpectedVersion;largeDungeon='785,100';error='NAV_BUDGET';mapDisappeared=$true}|ConvertTo-Json|Set-Content -LiteralPath (Join-Path $evidence 'v06-map-reproduction.json')
    Write-Output 'Reproduced frozen v0.6 NAV_BUDGET and disappearing X-Ray';return
   }
+  Set-Number 'Open spell holder level' '7'
   Click 'Calculate navigation'
   if(!(Elements|Where-Object {$_.Current.Name -eq 'Reconstructed dungeon floor map'})){throw 'Map disappeared during navigation initialization'}
   Click 'Cancel';$null=Wait-Text 'Analysis cancelled' 30
@@ -97,6 +98,12 @@ try {
   Click 'Calculate navigation';$null=Wait-Text 'objectives validated' 90
   $afterMap=Elements|Where-Object {$_.Current.Name -eq 'Reconstructed dungeon floor map'}|Select-Object -First 1
   if(!$afterMap -or ($afterMap.GetRuntimeId() -join ',') -ne $mapRuntimeId){throw 'Map DOM was removed/replaced by route calculation'}
+  $spell=Elements|Where-Object {$_.Current.Name -eq 'Open spell holder level' -and $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Spinner}|Select-Object -First 1
+  if(!$spell){$spell=Elements|Where-Object {$_.Current.Name -eq 'Open spell holder level' -and $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Edit}|Select-Object -First 1}
+  if(!$spell){throw 'Missing persisted navigation capability control'}
+  $valuePattern=$null;$rangePattern=$null
+  if($spell.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern,[ref]$valuePattern)){$spellValue=[double]$valuePattern.Current.Value}elseif($spell.TryGetCurrentPattern([System.Windows.Automation.RangeValuePattern]::Pattern,[ref]$rangePattern)){$spellValue=$rangePattern.Current.Value}else{throw 'Cannot read navigation capability value'}
+  if($spellValue -ne 7){throw 'Navigation calculation reset character capability controls'}
  }elseif(!$World){Click 'Calculate navigation';$null=Wait-Text 'Navigation analysis ready';$null=Wait-Text 'objectives validated'}
  if($Companion){
   $summary=Elements|Where-Object {$_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and $_.Current.Name.StartsWith('Live companion')}|Select-Object -First 1
