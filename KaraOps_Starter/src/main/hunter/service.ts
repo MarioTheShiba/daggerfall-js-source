@@ -65,12 +65,12 @@ export class HunterService {
   async map(settings: KaraOpsSettings, mapId: unknown): Promise<number> {
     if (!Number.isInteger(mapId)) throw new Error('Invalid map ID')
     const scan = this.current.scan, result = scan?.results.find(r => r.mapId === mapId)
-    if (!scan || !result || this.current.state !== 'complete') throw new Error('Select a completed scan result first')
+    if (!scan || !result || this.current.state === 'running') throw new Error('Select a completed scan result first')
     return this.start(settings, null, { px: result.px, py: result.py, request: scan.request, expected: scan.provenance })
   }
   async navigate(settings:KaraOpsSettings,mapId:unknown,input:unknown):Promise<number>{
     const navigation=validateNavigation(input),scan=this.current.scan,geometry=this.current.geometry
-    if(!Number.isInteger(mapId)||!scan||!geometry||geometry.mapId!==mapId||this.current.state!=='complete')throw new Error('Open a completed 2D map before requesting navigation')
+    if(!Number.isInteger(mapId)||!scan||!geometry||geometry.mapId!==mapId||this.current.state==='running')throw new Error('Open a completed 2D map before requesting navigation')
     return this.start(settings,null,{px:geometry.px,py:geometry.py,request:scan.request,expected:geometry.provenance,navigation})
   }
   async jackpot(settings:KaraOpsSettings,input:unknown):Promise<number>{
