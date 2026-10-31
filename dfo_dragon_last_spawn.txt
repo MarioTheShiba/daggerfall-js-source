@@ -1,0 +1,20 @@
+
+============================================================
+  DRAGON SPAWN CONFIRMED — Brass
+============================================================
+Detected via:     live connection
+Watch number:     498168
+Spawn time:       Saturday, 31 October 2026 at 02:09:58 (Romania)
+Leaves by:        Saturday, 31 October 2026 at 02:49:58 (unless slain)
+Time remaining:   39m 57s (unless slain)
+Region:           Skyrim
+Server seed:      2416445202 (revealed AFTER spawn)
+SPAWN TILE:       (1672, 297)
+Near:             Kjis
+World lane:       3
+Lookup ID:        379221873
+Nearest town:     Kjis (1669, 300)
+From town:        3 tiles east, 3 tiles north
+============================================================
+
+Note: This confirms the scheduled dragon spawn, NOT that it remains alive now.
