@@ -1,3 +1,9 @@
+# Current priority update ? 2026-10-31
+
+The user superseded the exhaustive-scanning roadmap below. v0.7 now targets navigation reliability and a developer-authorized live companion. Exhaustive Tamriel scanning is deferred. Read docs/V07_VERIFICATION.md and integration/DFO_UPSTREAM_PROPOSAL.md first for the implemented navigation fix, opt-in receiver/SDK, actual verification and remaining producer/HUD/GPS blockers. Developer approval was reported by the user; no DFO source changes or game integration deployment were performed. Preserve the frozen v0.6 release described below.
+
+---
+
 # KaraOps v0.6.0 release checkpoint / v0.7 handoff
 
 Checkpoint date: 2026-10-31, Europe/Bucharest.

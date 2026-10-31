@@ -108,7 +108,8 @@ try {
  if($Companion){
   $summary=Elements|Where-Object {$_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and $_.Current.Name.StartsWith('Live companion')}|Select-Object -First 1
   if(!$summary){throw 'Missing live companion panel'}
-  $summary.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke();$null=Wait-Text 'Enable local receiver' 15
+  $invoke=$null;if($summary.TryGetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern,[ref]$invoke)){$invoke.Invoke()}else{$summary.SetFocus();[System.Windows.Forms.SendKeys]::SendWait(' ')}
+  $null=Wait-Text 'Enable local receiver' 15
   Set-Number 'Exact approved game origin' 'https://qa.invalid'
   $consent=Elements|Where-Object {$_.Current.ControlType -eq [System.Windows.Automation.ControlType]::CheckBox -and $_.Current.Name.StartsWith('I authorize local telemetry')}|Select-Object -First 1
   $consent.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern).Toggle()

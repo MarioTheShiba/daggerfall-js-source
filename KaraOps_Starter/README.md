@@ -1,3 +1,17 @@
+# KaraOps v0.7 ? Navigation reliability and live-companion foundation
+
+The large multi-floor navigation failure is reproduced and repaired. The 2D X-Ray survives route calculation, errors and cancellation; retry/reopen works without another world scan. A bounded coarser proposal bake can recover capsule-motor-validated routes in layouts that previously exceeded the fixed grid budget. Missing paths remain Unverified, and the source's ordinary fine grid is retained where it fits.
+
+An explicitly enabled loopback receiver, strict map/source/assets/layout checks, telemetry minimap wiring, floor following and a separate read-only publisher SDK are implemented. **The game-side producer is not installed or runtime-validated. Aurum ESP and live GPS remain visibly disabled.** The user reported developer approval; this is documented without modifying DFO source, reading memory, using debugging ports, observing packets or automating gameplay.
+
+See [v0.7 verification and limits](docs/V07_VERIFICATION.md) and the [separate upstream integration proposal](integration/DFO_UPSTREAM_PROPOSAL.md). The next step is a developer-integrated actual-data sampler/manifest and real-game coordinate, teleport and viewport validation before HUD/GPS work. Exhaustive Tamriel scanning is deferred under the user's revised priorities.
+
+The frozen v0.6 EXE remains unchanged. Existing settings, observations and captures are preserved. The receiver is off on every startup; it requires a matching reconstructed map, the exact approved game origin, explicit opt-in and a private one-session pairing token. Its tracking state means received identity-matched telemetry, not certified game parity.
+
+Historical v0.6 documentation follows.
+
+---
+
 # KaraOps v0.6 ? Universal Jackpot & Aurum analysis
 
 The portable application now captures every analyzed population in a bounded query and ranks saved results by species, source-defined family, purity, total population, custom family weights or Legendary opportunity. Existing discovery, 2D maps, navigation, settings and observations are preserved.

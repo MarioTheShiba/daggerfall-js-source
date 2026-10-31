@@ -1,3 +1,9 @@
+# v0.7 implementation audit
+
+The user's revised milestone is navigation reliability and a developer-authorized live companion; exhaustive scanning is deferred. See [the current verification and implementation record](V07_VERIFICATION.md) and [upstream integration proposal](../integration/DFO_UPSTREAM_PROPOSAL.md). Historical release records below are preserved.
+
+---
+
 # v0.6 implementation audit ? 2026-10-31
 
 The existing v0.5 scanner was extended in place. No DFO source, ARENA2 file, game client or account state was modified. All work remains offline.

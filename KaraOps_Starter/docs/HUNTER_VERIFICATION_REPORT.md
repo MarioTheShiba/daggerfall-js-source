@@ -1,3 +1,9 @@
+# v0.7 verification report
+
+The user's revised milestone is navigation reliability and a developer-authorized live companion; exhaustive scanning is deferred. See [the current verification and implementation record](V07_VERIFICATION.md) and [upstream integration proposal](../integration/DFO_UPSTREAM_PROPOSAL.md). Historical release records below are preserved.
+
+---
+
 # v0.6 verification ? Universal Jackpot & Aurum
 
 See [the current v0.6 verification record](V06_VERIFICATION.md) for executable identity, exact tests, source revisions, coverage and limitations. The v0.5 report below is historical and describes its own executable and source state.
