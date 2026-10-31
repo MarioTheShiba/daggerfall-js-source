@@ -3,6 +3,8 @@ import type { HunterCatalog, HunterHistory, HunterResult, HunterStatus, ScanRequ
 import { XRay } from './XRay'
 import {Jackpot} from './Jackpot'
 import {retainedMap,shownNavigation} from './mapState'
+import {Companion} from './Companion'
+import type {LiveStatus} from '../../../shared/liveTypes'
 
 const initial: ScanRequest = { px: 780, py: 100, radius: 15, species: 34, level: 1, region: -1, minTargets: 1, eliteOnly: true, alternate: false, profile: 'dex-mudex' }
 const bridge = () => window.karaops.hunter
@@ -10,6 +12,7 @@ const directions = (r: HunterResult): string => r.nearest ? `${r.name}: tile (${
 
 export function Hunter() {
   const [request, setRequest] = useState(initial)
+  const [telemetry,setTelemetry]=useState<LiveStatus>({enabled:false,state:'off',reason:'Receiver off'})
   const [coordinates,setCoordinates]=useState({px:String(initial.px),py:String(initial.py)})
   const [status, setStatus] = useState<HunterStatus>({ id: 0, state: 'idle', progress: { phase: 'Choose Validate data to load the local source and ARENA2' } })
   const [catalog, setCatalog] = useState<HunterCatalog | null>(null)
@@ -66,8 +69,9 @@ export function Hunter() {
   const progress = busy || status.geometry || status.state==='analysis_error' ? status.progress : status.scan?.stats ?? status.progress
   const provenance = status.scan?.provenance ?? catalog?.provenance
   return <section className="hunter">
-    <div className="eyebrow">OFFLINE / TAMRIEL DUNGEON HUNTER / v0.6</div>
+    <div className="eyebrow">OFFLINE / TAMRIEL DUNGEON HUNTER / v0.7</div>
     <h1>Find your quarry.</h1>
+    <Companion onState={setTelemetry}/>
     <Jackpot status={status} requestValid={/^-?\d+$/.test(coordinates.px)&&/^-?\d+$/.test(coordinates.py)} request={request} onInspect={id=>setSelection(id)}/>
     <p className="lead">Source-generated online layouts, resolved enemy populations, and a floor-based 2D X-Ray. Live availability and reachability remain unknown.</p>
     <div className="hunter-caution">Bounded searches across source Tamriel theatres. Original ARENA2, traced geography, source-generated roads and curated blocks. External world-data/land edits, runtime quests and live spawn clocks are not reproduced. Cyrodiil's open zone excludes generated spawns. This is not an exhaustive world scan.</div>
@@ -134,7 +138,7 @@ export function Hunter() {
     {geometry&&<>
       {status.state==='analysis_error'&&<p role="status">The last reconstructed map is retained. The latest analysis failed; its route is Unverified. See the diagnostic above. Reopen the map to verify changed source/assets.</p>}
       {status.state==='cancelled'&&<p role="status">Analysis cancelled. The reconstructed map is retained; no route from the cancelled job is displayed.</p>}
-      <XRay key={`${geometry.mapId}:${geometry.cache?.key??geometry.provenance.sourceFingerprint}`} geometry={geometry} catalog={catalog} coffer={status.jackpot?.aurum?.mapId===geometry.mapId?status.jackpot.aurum:undefined} navigation={shownNavigation(status,geometry)} busy={busy} onNavigate={request=>void navigate(request)}/>
+      <XRay key={`${geometry.mapId}:${geometry.cache?.key??geometry.provenance.sourceFingerprint}`} geometry={geometry} catalog={catalog} telemetry={telemetry} coffer={status.jackpot?.aurum?.mapId===geometry.mapId?status.jackpot.aurum:undefined} navigation={shownNavigation(status,geometry)} busy={busy} onNavigate={request=>void navigate(request)}/>
     </>}
     {provenance && <details><summary>Source / asset provenance and limits</summary><p>{provenance.scope}</p>{provenance.warnings.map(w => <p key={w}>{w}</p>)}<pre>{JSON.stringify(provenance, null, 2)}</pre></details>}
     <details><summary>Saved targets and manual observations ({history.observations.length})</summary>{[...history.observations].reverse().map((o, i) => <p key={i}>{o.name} · {new Date(o.observedAt).toLocaleString()} · {o.actualCount === null ? 'Bookmark' : `Saw ${o.actualCount}`} · {o.notes}<br/><small>Source {o.sourceFingerprint.slice(0, 16)} · level {o.request.level} · {o.request.profile}. Historical, not current live state.</small></p>)}</details>

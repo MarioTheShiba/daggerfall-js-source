@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import type { HunterGeometry, HunterCatalog, NavigationRequest, NavigationResult } from '../../../shared/hunterTypes'
 import { Navigation } from './Navigation'
-import {validMapFocus} from './mapState'
+import {validMapFocus,telemetryMarker} from './mapState'
 import {NavigationBoundary} from './NavigationBoundary'
 
-export function XRay({ geometry: g, catalog, navigation, coffer, busy=false, onNavigate }: { geometry: HunterGeometry; catalog: HunterCatalog | null; navigation?: NavigationResult; coffer?:import('../../../shared/jackpotTypes').JackpotStatus['aurum']; busy?: boolean; onNavigate: (request:NavigationRequest)=>void }) {
+export function XRay({ geometry: g, catalog, navigation, coffer, telemetry, busy=false, onNavigate }: { geometry: HunterGeometry; catalog: HunterCatalog | null; navigation?: NavigationResult; telemetry?:import('../../../shared/liveTypes').LiveStatus; coffer?:import('../../../shared/jackpotTypes').JackpotStatus['aurum']; busy?: boolean; onNavigate: (request:NavigationRequest)=>void }) {
   const full = { x:g.bounds.x0-3, y:-g.bounds.z1-3, w:g.bounds.x1-g.bounds.x0+6, h:g.bounds.z1-g.bounds.z0+6 }
   const [view,setView] = useState(full)
-  const [floor,setFloor] = useState(g.entrance?.sheet ?? 0)
+  const [floor,setFloor] = useState(g.plans.some(p=>p.index===g.entrance?.sheet)?g.entrance!.sheet:g.plans[0]?.index??0)
   const [species,setSpecies] = useState(g.request.species)
   const [copies,setCopies] = useState(false)
   const [doors,setDoors] = useState(true)
@@ -15,6 +15,9 @@ export function XRay({ geometry: g, catalog, navigation, coffer, busy=false, onN
   const [inspect,setInspect] = useState<Record<string,unknown> | null>(null)
   const svg = useRef<SVGSVGElement>(null)
   const drag = useRef<{x:number;y:number;scale:number;view:typeof full} | null>(null)
+  const [followFloor,setFollowFloor]=useState(true)
+  const player=telemetryMarker(g,telemetry)
+  useEffect(()=>{if(followFloor&&player)setFloor(player.sheet)},[followFloor,player?.sheet,player?.sequence])
   const plan = g.plans[floor]
   const markers = g.enemies.filter(e=>e.sheet===floor && (species===-1 || e.mobileType===species) && (copies || !e.eliteCopy))
   const name = (id:number) => catalog?.species.find(s=>s.id===id)?.name ?? `Mobile ${id}`
@@ -30,6 +33,7 @@ export function XRay({ geometry: g, catalog, navigation, coffer, busy=false, onN
   }
   function entrance() {
     if (!g.entrance) return
+    if(!validMapFocus(g,[g.entrance.x,g.entrance.y,g.entrance.z],g.entrance.sheet)){setInspect({kind:'Unverified entrance floor; current map retained',...g.entrance});return}
     setFloor(g.entrance.sheet)
     setView(v=>({...v,x:g.entrance!.x-v.w/2,y:-g.entrance!.z-v.h/2}))
     setInspect({kind:'Entrance',...g.entrance})
@@ -49,7 +53,9 @@ export function XRay({ geometry: g, catalog, navigation, coffer, busy=false, onN
   return <section className="xray" aria-label="Dungeon X-Ray 2D">
     <h2>Dungeon X-Ray · 2D</h2><p>{g.name} · {g.stats.blocks} blocks · {g.stats.storeys} source storeys grouped into {g.plans.length} map floors · {g.cell}m source automap raster · {g.cache?.hit?'cached after fresh input verification':'reconstructed from verified inputs'}</p>
     <p className="hunter-caution">At-rest geometry, not live state or a route. The checked DFO automap reader drops mesh normals; this adapter retains authored facing so ceilings do not become false floors. Floor extraction and stair grouping use the source algorithms.</p>
+    {telemetry?.enabled&&<p>Telemetry: {telemetry.state} ? {player?'identity-matched receiver position; game parity not yet certified':'no matching mapped player position'}. {telemetry.discontinuity?'Teleport/discontinuity detected; old routes are not current-position GPS.':''}</p>}
     <div className="xray-tools">
+      <label><input type="checkbox" checked={followFloor} onChange={e=>setFollowFloor(e.target.checked)}/>Follow telemetry floor (source nearest-storey rule)</label>
       <label>Map floor<select aria-label="Map floor" value={floor} onChange={e=>setFloor(Number(e.target.value))}>{g.plans.map(p=><option key={p.index} value={p.index}>{p.label} · Y {p.y0.toFixed(1)} to {p.y1.toFixed(1)}m</option>)}</select></label>
       <label>Map species<select aria-label="Map species" value={species} onChange={e=>setSpecies(Number(e.target.value))}><option value="-1">All resolved species</option>{[...new Set(g.enemies.map(e=>e.mobileType))].sort((a,b)=>a-b).map(id=><option key={id} value={id}>{name(id)} ({id})</option>)}</select></label>
       <label><input type="checkbox" checked={copies} onChange={e=>setCopies(e.target.checked)}/>Elite copies</label>
@@ -71,7 +77,7 @@ export function XRay({ geometry: g, catalog, navigation, coffer, busy=false, onN
       {navigation?.steps.filter(s=>s.sheet===floor&&s.kind==='interaction').map((s,i)=><rect key={i} data-inspect="interaction" x={s.at[0]-radius} y={-s.at[2]-radius} width={radius*2} height={radius*2} fill="#ff91bd" onClick={()=>setInspect({...s})}><title>{s.text}</title></rect>)}
       {navigation?.failures.filter(f=>f.sheet===floor&&f.at).map((f,i)=><path key={i} data-inspect="frontier" d={`M${f.at![0]-radius*2},${-f.at![2]-radius*2}l${radius*4},${radius*4}m${-radius*4},0l${radius*4},${-radius*4}`} stroke="#ff7979" strokeWidth="2" vectorEffect="non-scaling-stroke" onClick={()=>setInspect({...f})}><title>Unverified frontier: {f.reason}</title></path>)}
       {doors && g.doors.filter(d=>d.sheet===floor).map(d=><rect key={d.id} data-inspect="door" x={d.x0} y={-d.z1} width={Math.max(.08,d.x1-d.x0)} height={Math.max(.08,d.z1-d.z0)} className="xray-door" vectorEffect="non-scaling-stroke" onClick={()=>setInspect({kind:'Door',...d})}><title>{`Door at (${d.x.toFixed(2)},${d.y.toFixed(2)},${d.z.toFixed(2)}) · lock ${d.lock} · predicted closed, not live state`}</title></rect>)}
-      {stairs && g.stairs.filter(s=>s.from===floor).filter((s,i,all)=>!all.slice(0,i).some(p=>p.to===s.to && Math.hypot(p.x-s.x,p.z-s.z)<6)).map(s=><g key={s.id} data-inspect="stair" data-stair-id={s.id} className="xray-stair" onClick={()=>{setInspect({kind:'Source automap surface join; not a validated route',...s});setFloor(s.to)}}>
+      {stairs && g.stairs.filter(s=>s.from===floor).filter((s,i,all)=>!all.slice(0,i).some(p=>p.to===s.to && Math.hypot(p.x-s.x,p.z-s.z)<6)).map(s=><g key={s.id} data-inspect="stair" data-stair-id={s.id} className="xray-stair" onClick={()=>{setInspect({kind:'Source automap surface join; not a validated route',...s});if(g.plans.some(p=>p.index===s.to))setFloor(s.to)}}>
         <circle cx={s.x} cy={-s.z} r={radius*1.4}/><path d={`M${s.x-s.dx*2},${-s.z+s.dz*2}L${s.x+s.dx*2},${-s.z-s.dz*2}`} vectorEffect="non-scaling-stroke"/>
         <title>{s.from===s.to?'Stair/ramp within this map floor':`Stair/ramp toward ${g.plans[s.to]?.label}. Click to switch floors.`}</title>
       </g>)}
@@ -81,6 +87,7 @@ export function XRay({ geometry: g, catalog, navigation, coffer, busy=false, onN
       </g>)}
       {g.entrance?.sheet===floor && <g data-inspect="entrance" onClick={entrance} className="xray-entrance"><circle cx={g.entrance.x} cy={-g.entrance.z} r={radius*1.7}/><title>Dungeon entrance</title></g>}
       {coffer?.approved&&coffer.foot&&coffer.sheet===floor&&<rect data-inspect="aurum-coffer" x={coffer.foot[0]-radius} y={-coffer.foot[2]-radius} width={radius*2} height={radius*2} fill="#ffdc75" onClick={()=>setInspect({kind:'Verified coffer placement',...coffer})}><title>Aurum coffer; navigation {coffer.navigation}; account {coffer.accountState}</title></rect>}
+      {player?.sheet===floor&&<g data-inspect="telemetry-player" transform={`translate(${player.x},${-player.z}) rotate(${player.yaw*180/Math.PI})`} onClick={()=>setInspect({kind:'Received telemetry position; game parity unverified',...player})}><circle r={radius*2} fill="#6bccff"/><path d={`M0,${-radius*4}L${radius*1.5},0L${-radius*1.5},0Z`} fill="#e7f8ff"/><title>Identity-matched telemetry player; source nearest-storey floor assignment</title></g>}
     </svg>
     <p className="xray-legend">Floor fill / boundary walls: source mesh raster · green square: fixed · amber circle: resolved random · hollow: Elite copy · blue: entrance · red: door at rest · cyan: source stair/ramp join.</p>
     {navigation&&<p className="xray-legend">Green arrows: motor-validated outbound traces · blue dashed: validated return · purple: walk-in navigation start · pink: verified ordinary-door interaction. No route is drawn for Unverified objectives. Traces stop at floor boundaries and continue on their matching floors.</p>}

@@ -1,4 +1,5 @@
 import { populationFor } from './engine.mjs'
+import {digest} from './compatibility.mjs'
 export async function assembleGeometry(game, spec, capture = null) {
   const { px, py, request } = spec
   await game.world.prepare({...request,px,py,radius:0},undefined,game.cacheDir)
@@ -67,7 +68,9 @@ export async function assembleGeometry(game, spec, capture = null) {
   const stairs = links.map((l,i)=>({ id:`stair:${i}`, x:l.x,z:l.z,y:storeys[l.from].y,dx:l.dx,dz:l.dz,from:sheetOf[l.from],to:sheetOf[l.to], fromStorey:l.from,toStorey:l.to }))
   for (const door of doors) door.sheet = sheetAt(door.y)
   if (capture) Object.assign(capture,{built,dungeon,entries,collider,sheetAt})
-  return { schema:1,mapId:built.mapTableData.mapId,px,py,name:built.name,request,provenance:game.provenance,bounds,cell:floors.PLAN_CELL,storeys,plans,enemies,doors,stairs,
+  const layoutFingerprint=digest(JSON.stringify(dungeon.blocks.map(b=>({name:b.name,x:b.originX,z:b.originZ,starting:b.isStartingBlock,water:b.layout.waterLevel,placements:b.layout.placements.map(p=>[p.modelIdNum,p.position,...p.matrix]),doors:b.layout.actionDoors.map(d=>[d.modelIdNum,d.position,!!d.disabled,...(d.matrix??[])])}))))
+  const assetFingerprint=digest(JSON.stringify(Object.fromEntries(Object.entries(game.provenance.assetHashes).sort(([a],[b])=>a.localeCompare(b)))))
+  return { schema:1,layoutFingerprint,assetFingerprint,mapId:built.mapTableData.mapId,px,py,name:built.name,request,provenance:game.provenance,bounds,cell:floors.PLAN_CELL,storeys,plans,enemies,doors,stairs,
     entrance:entrance && {...entrance,sheet:sheetAt(entrance.y)},unresolvedMarkers:population.unresolved,
     stats:{ blocks:dungeon.blocks.length,rows:entries.length,floorTriangles:tris.length,sheets:sheets.length,storeys:storeys.length,enemyBase:population.resolved.length,enemyExpanded:expanded.length },
     warnings:[`${enemies.filter(e=>!e.projectionOnFloor).length} predicted enemy records do not project onto their assigned sheet's 1m floor cells. Coordinates are preserved, not snapped; these positions need inspection.`,

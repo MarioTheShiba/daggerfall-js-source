@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$ExecutablePath,[switch]$Development,[switch]$World,[switch]$Jackpot)
+param([Parameter(Mandatory=$true)][string]$ExecutablePath,[switch]$Development,[switch]$World,[switch]$Jackpot,[switch]$Large,[switch]$BaselineRepro,[switch]$Companion,[string]$ExpectedVersion='0.6.0',[string]$EvidenceDir='')
 $ErrorActionPreference='Stop'
 Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
@@ -7,7 +7,7 @@ Add-Type -AssemblyName System.Drawing
 Add-Type 'using System.Text; using System; using System.Runtime.InteropServices; public class KaraNative { [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern bool SetWindowText(IntPtr h,string text); [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern int GetWindowText(IntPtr h,StringBuilder text,int count); [DllImport("user32.dll")] public static extern IntPtr SendMessage(IntPtr h,uint msg,IntPtr w,IntPtr l); [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h); }'
 $exe=(Resolve-Path -LiteralPath $ExecutablePath).Path
 $project=(Get-Location).Path
-$evidence=Join-Path $project 'release\verification'
+$evidence=if($EvidenceDir){[IO.Path]::GetFullPath($EvidenceDir)}else{Join-Path $project 'release\verification'}
 New-Item -ItemType Directory -Force -Path $evidence | Out-Null
 $settingsBefore=if(!$Development){[IO.File]::ReadAllText((Join-Path (Split-Path $exe) 'KaraOpsData\settings.json'))}else{$null}
 $env:ELECTRON_RUN_AS_NODE=$null
@@ -59,28 +59,59 @@ function Screenshot([string]$name){
 }
 try {
  $null=Wait-Text 'Your command center' 60
- if((Names) -notmatch '0\.6\.0'){throw 'Wrong application version'}
+ if((Names) -notmatch [Regex]::Escape($ExpectedVersion)){throw 'Wrong application version'}
  Click 'Dungeon Hunter';Click 'Validate data';$null=Wait-Text 'Data validated'
  $inputHistoryVerified=$false
  if(!$Development){$historyPath=Join-Path (Split-Path $exe) 'KaraOpsData\hunter-history.json';if(Test-Path -LiteralPath $historyPath){$stored=([IO.File]::ReadAllText($historyPath)|ConvertFrom-Json).lastRequest;if($stored){foreach($pair in @(@('Center X (east)',[string]$stored.px),@('Center Y (south)',[string]$stored.py))){$field=Elements|Where-Object {$_.Current.Name -eq $pair[0] -and $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Edit}|Select-Object -First 1;if(!$field -or $field.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).Current.Value -ne $pair[1]){throw 'Last signed search coordinates did not persist across restart'}};$inputHistoryVerified=$true}}}
  Set-Number 'Effective level (manual)' '30'
- Set-Number 'Center X (east)' $(if($World){'689'}else{'780'})
+ Set-Number 'Center X (east)' $(if($World){'689'}elseif($Large){'785'}else{'780'})
  Set-Number 'Center Y (south)' $(if($World){'-210'}else{'100'})
- Set-Number 'Radius (0' '20'
+ Set-Number 'Radius (0' $(if($Large){'0'}else{'20'})
  $elite=Elements|Where-Object {$_.Current.ControlType -eq [System.Windows.Automation.ControlType]::CheckBox -and $_.Current.Name -eq 'Elite only'}|Select-Object -First 1
  if(!$elite){throw 'Missing Elite only checkbox'}
  $toggle=$elite.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern);if($toggle.Current.ToggleState -ne [System.Windows.Automation.ToggleState]::On){$toggle.Toggle()}
  Click 'Scan';$text=Wait-Text 'requested circle complete'
- if(!$Development){$actualRequest=([IO.File]::ReadAllText((Join-Path (Split-Path $exe) 'KaraOpsData\hunter-history.json'))|ConvertFrom-Json).lastRequest;if($actualRequest.px -ne $(if($World){689}else{780}) -or $actualRequest.py -ne $(if($World){-210}else{100}) -or !$actualRequest.eliteOnly){throw 'Native input did not preserve signed coordinates/profile'}}
- $expected=if($World){'High Rock'}else{'Elite Castle Hawkwing'}
+ if(!$Development){$actualRequest=([IO.File]::ReadAllText((Join-Path (Split-Path $exe) 'KaraOpsData\hunter-history.json'))|ConvertFrom-Json).lastRequest;if($actualRequest.px -ne $(if($World){689}elseif($Large){785}else{780}) -or $actualRequest.py -ne $(if($World){-210}else{100}) -or !$actualRequest.eliteOnly){throw 'Native input did not preserve signed coordinates/profile'}}
+ $expected=if($World){'High Rock'}elseif($Large){'Elite The Cave of Morkucheus'}else{'Elite Castle Hawkwing'}
  if($text -notmatch [Regex]::Escape($expected)){throw "Missing real result: $expected"}
- if(!$World -and $text -notmatch '75/177'){throw 'Hawkwing population regression'}
- $case=if($World){'world'}else{'bay'}
+ if(!$World -and !$Large -and $text -notmatch '75/177'){throw 'Hawkwing population regression'}
+ $case=if($World){'world'}elseif($Large){'large'}else{'bay'}
  $selected=Elements|Where-Object {$_.Current.ClassName -eq 'hunter-result selected'}|Select-Object -First 1
  if($selected){try{$selected.GetCurrentPattern([System.Windows.Automation.ScrollItemPattern]::Pattern).ScrollIntoView()}catch{$selected.SetFocus()}}
  Screenshot "native-$case-results.png"
  Click 'Open 2D X-Ray';$null=Wait-Text '2D map ready'
- if(!$World){Click 'Calculate navigation';$null=Wait-Text 'Navigation analysis ready';$null=Wait-Text 'objectives validated'}
+ if($Large){
+  $beforeMap=Elements|Where-Object {$_.Current.Name -eq 'Reconstructed dungeon floor map'}|Select-Object -First 1
+  if(!$beforeMap){throw 'Large-dungeon map missing before navigation'}
+  $mapRuntimeId=$beforeMap.GetRuntimeId() -join ','
+  if($BaselineRepro){
+   Click 'Calculate navigation';$null=Wait-Text 'NAV_BUDGET' 60
+   if(Elements|Where-Object {$_.Current.Name -eq 'Reconstructed dungeon floor map'}){throw 'Expected frozen-v0.6 map-hiding regression was not reproduced'}
+   @{baseline=$true;version=$ExpectedVersion;largeDungeon='785,100';error='NAV_BUDGET';mapDisappeared=$true}|ConvertTo-Json|Set-Content -LiteralPath (Join-Path $evidence 'v06-map-reproduction.json')
+   Write-Output 'Reproduced frozen v0.6 NAV_BUDGET and disappearing X-Ray';return
+  }
+  Click 'Calculate navigation'
+  if(!(Elements|Where-Object {$_.Current.Name -eq 'Reconstructed dungeon floor map'})){throw 'Map disappeared during navigation initialization'}
+  Click 'Cancel';$null=Wait-Text 'Analysis cancelled' 30
+  if(!(Elements|Where-Object {$_.Current.Name -eq 'Reconstructed dungeon floor map'})){throw 'Map disappeared after cancellation'}
+  Click 'Calculate navigation';$null=Wait-Text 'objectives validated' 90
+  $afterMap=Elements|Where-Object {$_.Current.Name -eq 'Reconstructed dungeon floor map'}|Select-Object -First 1
+  if(!$afterMap -or ($afterMap.GetRuntimeId() -join ',') -ne $mapRuntimeId){throw 'Map DOM was removed/replaced by route calculation'}
+ }elseif(!$World){Click 'Calculate navigation';$null=Wait-Text 'Navigation analysis ready';$null=Wait-Text 'objectives validated'}
+ if($Companion){
+  $summary=Elements|Where-Object {$_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and $_.Current.Name.StartsWith('Live companion')}|Select-Object -First 1
+  if(!$summary){throw 'Missing live companion panel'}
+  $summary.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke();$null=Wait-Text 'Enable local receiver' 15
+  Set-Number 'Exact approved game origin' 'https://qa.invalid'
+  $consent=Elements|Where-Object {$_.Current.ControlType -eq [System.Windows.Automation.ControlType]::CheckBox -and $_.Current.Name.StartsWith('I authorize local telemetry')}|Select-Object -First 1
+  $consent.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern).Toggle()
+  Click 'Enable local receiver';$null=Wait-Text 'Receiver:\s+waiting' 30
+  $appPids=@((Get-Process KaraOps -ErrorAction SilentlyContinue).Id)
+  $listeners=@(Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue|Where-Object {$_.OwningProcess -in $appPids})
+  if(!$listeners.Count -or @($listeners|Where-Object {$_.LocalAddress -ne '127.0.0.1'}).Count){throw 'Receiver did not bind exclusively to IPv4 loopback'}
+  Click 'Disable local receiver';$null=Wait-Text 'Receiver:\s+off' 15
+ }
+
  $text=Names;[IO.File]::WriteAllText((Join-Path $evidence "native-$case-tree.txt"),$text)
  $map=Elements|Where-Object {$_.Current.Name -eq 'Reconstructed dungeon floor map'}|Select-Object -First 1
  if($map){
@@ -126,7 +157,7 @@ try {
  $settings=if($Development){$null}else{[IO.File]::ReadAllText((Join-Path (Split-Path $exe) 'KaraOpsData\settings.json'))|ConvertFrom-Json}
  if(!$Development -and [IO.File]::ReadAllText((Join-Path (Split-Path $exe) 'KaraOpsData\settings.json')) -ne $settingsBefore){throw 'Existing folder settings changed'}
  $external=@();if(!$Development){$appPids=@((Get-Process KaraOps -ErrorAction SilentlyContinue).Id);$external=@(Get-NetTCPConnection -ErrorAction Stop|Where-Object {$_.OwningProcess -in $appPids -and ($_.State -eq 'Listen' -or $_.RemoteAddress -notin @('127.0.0.1','::1','0.0.0.0','::'))});if($external.Count){throw 'Unexpected TCP connection or listening port in KaraOps'}}
- $record=@{executable=$exe;case=$case;nativeUIAutomation=$true;remoteDebugging=$false;jackpot=$Jackpot.IsPresent;realScan=$true;realMap=$true;navigation=(!$World);savedSettings=$settings;inputHistoryVerified=$inputHistoryVerified;externalTcpSnapshot=$external;hash=(Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash}
+ $record=@{executable=$exe;case=$case;nativeUIAutomation=$true;remoteDebugging=$false;large=$Large.IsPresent;companion=$Companion.IsPresent;jackpot=$Jackpot.IsPresent;realScan=$true;realMap=$true;navigation=(!$World);savedSettings=$settings;inputHistoryVerified=$inputHistoryVerified;externalTcpSnapshot=$external;hash=(Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash}
  $record|ConvertTo-Json -Depth 6 -Compress|Add-Content -LiteralPath (Join-Path $evidence 'native-hunter.jsonl')
  Write-Output ($record|ConvertTo-Json -Depth 6 -Compress)
 } catch {

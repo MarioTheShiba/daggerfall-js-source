@@ -12,6 +12,7 @@ export interface AppInfo {
 }
 
 export interface KaraOpsBridge {
+  companion: import('./liveTypes').CompanionBridge
   jackpot: import('./jackpotTypes').JackpotBridge
   hunter: import('./hunterTypes').HunterBridge
   getSettings(): Promise<KaraOpsSettings>

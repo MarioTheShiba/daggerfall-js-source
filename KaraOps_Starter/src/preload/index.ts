@@ -3,6 +3,7 @@ import type { KaraOpsBridge } from '../shared/types'
 
 // Explicit, narrow API. Never expose raw ipcRenderer or Node primitives to the UI.
 const api: KaraOpsBridge = {
+  companion:{start:origin=>ipcRenderer.invoke('companion:start',origin),stop:()=>ipcRenderer.invoke('companion:stop'),status:()=>ipcRenderer.invoke('companion:status')},
   jackpot: {run: command=>ipcRenderer.invoke('jackpot:run',command),export: format=>ipcRenderer.invoke('jackpot:export',format)},
   hunter: {
     navigate: (mapId, request) => ipcRenderer.invoke('hunter:navigate',mapId,request),

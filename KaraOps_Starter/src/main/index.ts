@@ -1,5 +1,6 @@
 import { app, BrowserWindow, clipboard, dialog, ipcMain, session } from 'electron'
 import { HunterService } from './hunter/service'
+import {CompanionService} from './companion/service'
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import {pathToFileURL} from 'node:url'
@@ -24,6 +25,8 @@ if (portableDir) {
 const settingsFile = join(dataDir, 'settings.json')
 process.env.KARAOPS_APP_PATH=app.getAppPath()
 const hunter = new HunterService(app.isPackaged ? join(process.resourcesPath, 'hunter/worker.mjs') : join(app.getAppPath(), 'src/main/hunter/worker.mjs'), dataDir)
+const companion=new CompanionService()
+app.on('before-quit',()=>{void companion.stop()})
 app.on('before-quit', () => { void hunter.cancel() })
 
 function cleanSettings(value: unknown): KaraOpsSettings {
@@ -54,6 +57,9 @@ function verifySender(event: Electron.IpcMainInvokeEvent): void {
 }
 
 function installIpc(): void {
+  ipcMain.handle('companion:start',(event,origin:unknown)=>{verifySender(event);companion.setGeometry(hunter.status().geometry);return companion.start(origin)})
+  ipcMain.handle('companion:stop',event=>{verifySender(event);return companion.stop()})
+  ipcMain.handle('companion:status',event=>{verifySender(event);companion.setGeometry(hunter.status().geometry);return companion.status()})
   ipcMain.handle('jackpot:run',(event,command:unknown)=>{verifySender(event);return hunter.jackpot(loadSettings(),command)})
   ipcMain.handle('jackpot:export',async(event,format:unknown)=>{verifySender(event);if(format!=='csv'&&format!=='json')throw new Error('Invalid export format');const result=hunter.status().jackpot?.ranking;if(!result||!mainWindow)throw new Error('Rank a capture first');const file=await dialog.showSaveDialog(mainWindow,{defaultPath:join(dataDir,'KaraOps-Jackpot.'+format),filters:[{name:format.toUpperCase(),extensions:[format]}]});if(file.canceled||!file.filePath)return null;const mod=await import(/* @vite-ignore */ pathToFileURL(app.isPackaged?join(process.resourcesPath,'hunter/jackpot.mjs'):join(app.getAppPath(),'src/main/hunter/jackpot.mjs')).href);writeFileSync(file.filePath,mod.exportRanking(result,format),'utf8');return file.filePath})
 
@@ -72,6 +78,7 @@ function installIpc(): void {
   ipcMain.handle('settings:save', (event, value: unknown) => {
     verifySender(event)
     void hunter.cancel()
+    void companion.stop()
     return saveSettings(value)
   })
   ipcMain.handle('folders:choose', async (event, kind: FolderKind) => {

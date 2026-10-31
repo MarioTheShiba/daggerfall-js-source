@@ -22,6 +22,7 @@ export interface HunterResult { captureId?:string;markerCoordinatesOmitted?:bool
 }
 export interface HunterScan { request: ScanRequest; provenance: Provenance; stats: HunterProgress; results: HunterResult[]; coverage?:{kind:string;center:{px:number;py:number};radius:number;visitedPixels:number;visitedByTheatre:Record<string,number>;eligible:number;populationsExamined:number;failed:number;matchingResults:number;retained:number;truncated:boolean;completeWithinQuery:boolean;exhaustiveWorld:boolean;roadRegions:string[];note:string}; diagnostics: { px?: number; py?: number; status: Feasibility; message: string }[]; cache?: { hit: boolean; key: string } }
 export interface HunterGeometry {
+  layoutFingerprint?:string;assetFingerprint?:string
   mapId: number; name: string; px: number; py: number; cell: number; request: ScanRequest; provenance: Provenance
   bounds: { x0: number; z0: number; x1: number; z1: number }
   plans: { index: number; label: string; y: number; y0: number; y1: number; storeys: number[]; fill: string; walls: string; openings: string; cells: number }[]
