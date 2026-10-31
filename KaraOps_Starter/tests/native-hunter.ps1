@@ -1,10 +1,10 @@
-param([Parameter(Mandatory=$true)][string]$ExecutablePath,[switch]$Development,[switch]$World)
+param([Parameter(Mandatory=$true)][string]$ExecutablePath,[switch]$Development,[switch]$World,[switch]$Jackpot)
 $ErrorActionPreference='Stop'
 Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
-Add-Type 'using System; using System.Runtime.InteropServices; public class KaraNative { [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h); }'
+Add-Type 'using System.Text; using System; using System.Runtime.InteropServices; public class KaraNative { [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern bool SetWindowText(IntPtr h,string text); [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern int GetWindowText(IntPtr h,StringBuilder text,int count); [DllImport("user32.dll")] public static extern IntPtr SendMessage(IntPtr h,uint msg,IntPtr w,IntPtr l); [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h); }'
 $exe=(Resolve-Path -LiteralPath $ExecutablePath).Path
 $project=(Get-Location).Path
 $evidence=Join-Path $project 'release\verification'
@@ -15,11 +15,13 @@ $env:ELECTRON_RENDERER_URL=$null
 if(!$Development){$env:PATH="$env:SystemRoot\System32;$env:SystemRoot"}
 $argsList=@('--force-renderer-accessibility=complete')
 if($Development){$argsList=@($project,'--force-renderer-accessibility=complete')}
+$beforeCondition=New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty,'KaraOps')
+$previousHandles=@([System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Children,$beforeCondition)|ForEach-Object {$_.Current.NativeWindowHandle})
 $launcher=Start-Process -FilePath $exe -ArgumentList $argsList -WorkingDirectory (Split-Path $exe) -WindowStyle Hidden -PassThru
 $script:window=$null
 $condition=New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty,'KaraOps')
 for($attempt=0;$attempt -lt 120;$attempt++){
- $script:window=[System.Windows.Automation.AutomationElement]::RootElement.FindFirst([System.Windows.Automation.TreeScope]::Children,$condition)
+ $script:window=[System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Children,$condition)|Where-Object {$_.Current.NativeWindowHandle -notin $previousHandles}|Select-Object -First 1
  if($script:window){break};Start-Sleep -Milliseconds 500
 }
 if(!$script:window){throw 'KaraOps window did not appear'}
@@ -57,7 +59,7 @@ function Screenshot([string]$name){
 }
 try {
  $null=Wait-Text 'Your command center' 60
- if((Names) -notmatch '0\.5\.0'){throw 'Wrong application version'}
+ if((Names) -notmatch '0\.6\.0'){throw 'Wrong application version'}
  Click 'Dungeon Hunter';Click 'Validate data';$null=Wait-Text 'Data validated'
  $inputHistoryVerified=$false
  if(!$Development){$historyPath=Join-Path (Split-Path $exe) 'KaraOpsData\hunter-history.json';if(Test-Path -LiteralPath $historyPath){$stored=([IO.File]::ReadAllText($historyPath)|ConvertFrom-Json).lastRequest;if($stored){foreach($pair in @(@('Center X (east)',[string]$stored.px),@('Center Y (south)',[string]$stored.py))){$field=Elements|Where-Object {$_.Current.Name -eq $pair[0] -and $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Edit}|Select-Object -First 1;if(!$field -or $field.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).Current.Value -ne $pair[1]){throw 'Last signed search coordinates did not persist across restart'}};$inputHistoryVerified=$true}}}
@@ -91,10 +93,40 @@ try {
   }
  }
  Screenshot "native-$case-map.png"
+
+ if($Jackpot){
+  $summary=Elements|Where-Object {$_.Current.Name.StartsWith('Universal Jackpot')}|Select-Object -First 1
+  if(!$summary){throw 'Missing Universal Jackpot panel'}
+  $invoke=$null;if($summary.TryGetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern,[ref]$invoke)){$invoke.Invoke()}else{$summary.SetFocus();[System.Windows.Forms.SendKeys]::SendWait(' ')}
+  $null=Wait-Text 'Capture all populations' 15
+  Click 'Import retained legacy cache';$null=Wait-Text 'retained cache snapshots imported' 60
+  Click 'Capture all populations';$null=Wait-Text '91\s+analyzed populations'
+  $objective=Elements|Where-Object {$_.Current.ControlType -eq [System.Windows.Automation.ControlType]::ComboBox -and $_.Current.Name -eq 'Jackpot objective'}|Select-Object -First 1
+  if(!$objective){throw 'Missing Jackpot objective selector'}
+  [KaraNative]::SetForegroundWindow([IntPtr]$script:window.Current.NativeWindowHandle)|Out-Null
+  $objective.SetFocus();[System.Windows.Forms.SendKeys]::SendWait('{END}');Start-Sleep -Milliseconds 200
+  Click 'Rerank saved capture';$null=Wait-Text 'Reference-roll opportunity only'
+  $objective=Elements|Where-Object {$_.Current.ControlType -eq [System.Windows.Automation.ControlType]::ComboBox -and $_.Current.Name -eq 'Jackpot objective'}|Select-Object -First 1
+  $objective.SetFocus();[System.Windows.Forms.SendKeys]::SendWait('{HOME}');Start-Sleep -Milliseconds 200
+  Click 'Rerank saved capture';Start-Sleep -Seconds 1
+  Click 'Inspect captured dungeon';$null=Wait-Text 'Compact capture'
+  Click 'Open 2D X-Ray';$null=Wait-Text '2D map ready'
+  Click 'Analyze selected coffer';$cofferText=Wait-Text 'Aurum:\s+placement_verified'
+  if($cofferText -notmatch 'exact positions withheld'){throw 'Coffer location approval gate missing'}
+  Click 'Verify coffer walking route';$null=Wait-Text 'Walking route.*unknown' 120
+  Click 'Export Jackpot CSV';Start-Sleep -Seconds 1
+  $csvPath=Join-Path (Split-Path $exe) 'KaraOpsData\KaraOps-Jackpot.csv'
+  $save=Elements|Where-Object {$_.Current.ClassName -eq 'Button' -and $_.Current.Name -eq 'Save'}|Select-Object -First 1
+  if(!$save){throw 'Missing native Save button'}
+  $null=[KaraNative]::SendMessage([IntPtr]$save.Current.NativeWindowHandle,0xF5,[IntPtr]::Zero,[IntPtr]::Zero)
+  $null=Wait-Text 'Exported.*KaraOpsData.*KaraOps-Jackpot.csv' 30
+  $csv=[IO.File]::ReadAllText($csvPath);if($csv -notmatch 'UNKNOWN' -or $csv -notmatch 'sourceFingerprint'){throw 'CSV provenance/unknown odds missing'}
+  [IO.File]::WriteAllText((Join-Path $evidence 'native-jackpot-tree.txt'),(Names));Screenshot 'native-jackpot.png'
+ }
  $settings=if($Development){$null}else{[IO.File]::ReadAllText((Join-Path (Split-Path $exe) 'KaraOpsData\settings.json'))|ConvertFrom-Json}
  if(!$Development -and [IO.File]::ReadAllText((Join-Path (Split-Path $exe) 'KaraOpsData\settings.json')) -ne $settingsBefore){throw 'Existing folder settings changed'}
  $external=@();if(!$Development){$appPids=@((Get-Process KaraOps -ErrorAction SilentlyContinue).Id);$external=@(Get-NetTCPConnection -ErrorAction Stop|Where-Object {$_.OwningProcess -in $appPids -and ($_.State -eq 'Listen' -or $_.RemoteAddress -notin @('127.0.0.1','::1','0.0.0.0','::'))});if($external.Count){throw 'Unexpected TCP connection or listening port in KaraOps'}}
- $record=@{executable=$exe;case=$case;nativeUIAutomation=$true;remoteDebugging=$false;realScan=$true;realMap=$true;navigation=(!$World);savedSettings=$settings;inputHistoryVerified=$inputHistoryVerified;externalTcpSnapshot=$external;hash=(Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash}
+ $record=@{executable=$exe;case=$case;nativeUIAutomation=$true;remoteDebugging=$false;jackpot=$Jackpot.IsPresent;realScan=$true;realMap=$true;navigation=(!$World);savedSettings=$settings;inputHistoryVerified=$inputHistoryVerified;externalTcpSnapshot=$external;hash=(Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash}
  $record|ConvertTo-Json -Depth 6 -Compress|Add-Content -LiteralPath (Join-Path $evidence 'native-hunter.jsonl')
  Write-Output ($record|ConvertTo-Json -Depth 6 -Compress)
 } catch {

@@ -1,3 +1,23 @@
+# KaraOps v0.6 ? Universal Jackpot & Aurum analysis
+
+The portable application now captures every analyzed population in a bounded query and ranks saved results by species, source-defined family, purity, total population, custom family weights or Legendary opportunity. Existing discovery, 2D maps, navigation, settings and observations are preserved.
+
+Open **Dungeon Hunter ? Universal Jackpot** after **Validate data**. Set the normal Hunter circle and effective level, then **Capture all populations**. To reuse old retained scan entries, choose **Import retained legacy cache** after validating data, before creating new calculation-cache entries. Compatible, checksummed old scans are migrated without world discovery; missing loot metadata stays explicitly Unverified. A minimum total population defaults to 20. **Rerank saved capture** performs no discovery or geometry work. Combine compatible saved circles to deduplicate map IDs across explored regions; mismatched source/assets/level/scenario are excluded. **Reuse current Hunter results** imports the retained ordinary Hunter rows without claiming that discarded populations were recovered. Open a captured dungeon in the existing inspector and rebuild its 2D X-Ray for real enemy coordinates.
+
+**Legendary scores are reference-roll opportunities, not expected drops per kill, dungeon or hour.** The selector uses source family weights and exact conditional selection probabilities for a stated compatible item that has already rolled Legendary. Real item counts, template mix, room terms, Renown/finders, champions and current loot state are unknown. King's Mark favors warriors specifically.
+
+**Analyze selected coffer** reconstructs original treasure ordering, seeded icons, original texture sizes, floor landing, doors and movers, then runs the pinned Aurum placement rules. **Verify coffer walking route** separately runs source capsule-motor navigation. Placement does not prove reachability. Exact coffer coordinates, pile/floor details, map marker and route points stay withheld until explicit DFO developer permission is recorded in the local approval setting. No permission has been established by this development session. Account status is an optional manual note only; rewards are 10 Aurum once per account/dungeon, at most 10 coffers per UTC day.
+
+Captures live in **KaraOpsData/jackpot-library** beside the EXE: checksummed schema 1, at most 24 queries, 23 MB payload each. The library refuses additional queries when full and never silently evicts exploration. Complete captures cannot be overwritten by partial reruns. Cached calculation files remain independently bounded. Exact positions are omitted from ordinary leaderboard exports. Native CSV/JSON export includes source/configuration and coverage provenance.
+
+Build: npm.cmd run portable. No installer or external Node/Git runtime. The coffer reference is pinned to fetched DFO commit 090f4288666940c9b47f08cf0264d9a40ad29097; source license accompanies the reference. The selected local checkout remains authoritative for population predictions, and reused coffer helpers must match the audited reference. Source/version mismatches stop prediction.
+
+See [current verification](docs/V06_VERIFICATION.md), [implementation audit](docs/HUNTER_IMPLEMENTATION_AUDIT.md) and [verification history](docs/HUNTER_VERIFICATION_REPORT.md). No exhaustive Tamriel champion or live dungeon availability is claimed. 3D, complete mechanism solving and gameplay automation remain unavailable.
+
+The following v0.5 documentation is retained as history.
+
+---
+
 # KaraOps v0.5 — Tamriel-Wide Dungeon Hunter
 
 **Status:** Bounded generated-dungeon searches now cover the source Tamriel theatres, preserving v0.4 maps and navigation. Geography is traced from your original ARENA2 files; the adapter uses source fit, ground, reserved places, Cyrodiil exclusion and reconstructed road regions. Search by signed world coordinates or a province preset; inspect Dragonling count, total population, purity, map/template identity and explicit coverage. **No exhaustive world search or live availability is claimed.** See [the implementation audit](docs/HUNTER_IMPLEMENTATION_AUDIT.md) and [verification report](docs/HUNTER_VERIFICATION_REPORT.md).

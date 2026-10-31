@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url'
 import { createHash } from 'node:crypto'
 import { verifySource, inspectWorldData } from './compatibility.mjs'
 import {createHunterWorld} from './world.mjs'
+import {farmingCatalog,lootPopulation} from './jackpot.mjs'
 
 export const REQUIRED_ASSETS = ['MAPS.BSA', 'CLIMATE.PAK', 'POLITIC.PAK', 'WOODS.WLD', 'BLOCKS.BSA', 'ARCH3D.BSA','ART_PAL.COL','MAP.PAL','TMAP00I0.IMG','TAMRIEL2.IMG']
 export function scanRequest(value) {
@@ -179,6 +180,7 @@ export async function openGame(settings, progress = () => {}) {
   game.world=await createHunterWorld(game,{bytes,rows,rawMaps,rawWoods},progress)
   game.gate=game.world.gate;game.catalog.theatres=game.world.theatres
   provenance.geography={fit:game.world.fit,traceCells:game.world.traceCells,scenario:'Source default traced geography, capitals/countryside/lairs enabled; source roads reconstructed on demand. Browser land edits and live spawn clocks unknown.'}
+  game.catalog.farming=await farmingCatalog(game)
   return game
 }
 
@@ -207,6 +209,7 @@ export function reconstruct(game, location, request) {
       unresolved: population.unresolved.length, excluded: population.excluded, markerCandidates: population.markerCandidates },
     unresolvedMarkers: population.unresolved,
     dragonlings:counts[34]??0,totalEnemies:base.length*copies,dragonlingPercentage:base.length?(counts[34]??0)/(base.length*copies)*100:0,
+    analysis:lootPopulation(game,built,dungeon,base,request),
     targets: targets.map(e => ({ ...e, copies })),
     blocks: dungeon.blocks.map((b, index) => ({ index, name: b.name, x: b.originX, z: b.originZ, starting: b.isStartingBlock, waterLevel: b.layout.waterLevel })),
     entrance: dungeon.enterMarker ?? dungeon.startMarker, populationSeed: options.locationId, tableSeed: options.dungeon,
@@ -223,10 +226,10 @@ export function populationFor(game, built, dungeon, request) {
   return { resolved, unresolved, markerCandidates, excluded: markerCandidates - raw.length }
 }
 
-export async function scan(game, input, progress = () => {},dataDir) {
+export async function scan(game, input, progress = () => {},dataDir,collectAll=false) {
   const request = scanRequest(input), start = performance.now(), { spawn } = game.modules
   const stats = { phase: 'Pass A: world gates', pixels: 0, hashCandidates: 0, eligible: 0, simulated: 0, errors: 0, elapsedMs: 0 }
-  const candidates = [], results = [], diagnostics = []
+  const candidates = [], results = [], diagnostics = [],populations=[]
   await game.world.prepare(request,progress,dataDir)
   const visitedByTheatre={},seen=new Set();let matchingResults=0
   let last = 0
@@ -251,14 +254,16 @@ export async function scan(game, input, progress = () => {},dataDir) {
     try {
       const result = reconstruct(game, location, { ...request, tileX: x, tileY: y })
       stats.simulated++
-      if (result.count >= request.minTargets) {
-        if(seen.has(result.mapId))throw new Error('DUPLICATE_MAP_ID: source identity collision');seen.add(result.mapId);matchingResults++
+      if (collectAll || result.count >= request.minTargets) {
+        if(seen.has(result.mapId))throw new Error('DUPLICATE_MAP_ID: source identity collision');seen.add(result.mapId);if(result.count>=request.minTargets)matchingResults++
         const distance = Math.hypot(x - request.px, y - request.py)
         let nearest = null, nearestDistance = Infinity
         for (const town of game.catalog.towns) { const d = Math.hypot(x - town.px, y - town.py); if (d < nearestDistance) { nearestDistance = d; nearest = town } }
         const theatre=game.world.grid.theatreAt(x,y)
-        results.push({ ...result, px: x, py: y, distance,theatre,province:game.world.theatres[theatre].name,region:game.maps.getRegionIndexAt(x,y),eligibility:'eligible_under_offline_scenario',verification:'Source-derived fresh layout; live availability unverified', nearest: theatre===0&&nearest ? { ...nearest, distance: nearestDistance, dx: x - nearest.px, dy: y - nearest.py }:null,
-          spawnRoll: spawn.spawnRoll(spawn.WORLD_SALT, x, y), gates: ['hash + keep', 'unoccupied', 'climate', 'dry ground', 'source roads/paths free', 'outside Ether Sea', 'outside Cyrodiil open-zone', 'reserved source places excluded'] })
+        const row={ ...result, px: x, py: y, distance,theatre,province:game.world.theatres[theatre].name,region:game.maps.getRegionIndexAt(x,y),eligibility:'eligible_under_offline_scenario',verification:'Source-derived fresh layout; live availability unverified', nearest: theatre===0&&nearest ? { ...nearest, distance: nearestDistance, dx: x - nearest.px, dy: y - nearest.py }:null,
+          spawnRoll: spawn.spawnRoll(spawn.WORLD_SALT, x, y), gates: ['hash + keep', 'unoccupied', 'climate', 'dry ground', 'source roads/paths free', 'outside Ether Sea', 'outside Cyrodiil open-zone', 'reserved source places excluded'] }
+        if(collectAll)populations.push({...row,targets:[]})
+        if(result.count>=request.minTargets)results.push(row)
         results.sort((a, b) => (request.rankBy==='purity'?b.dragonlingPercentage-a.dragonlingPercentage:0)||b.count - a.count || a.distance - b.distance || a.mapId - b.mapId)
         if (results.length > 100) results.length = 100
       }
@@ -267,5 +272,5 @@ export async function scan(game, input, progress = () => {},dataDir) {
     if (performance.now() - start > 300000) { diagnostics.push({ status: 'unknown', message: '300-second budget exhausted; results are partial.' }); break }
   }
   stats.phase = stats.simulated + stats.errors < candidates.length ? 'Partial' : 'Complete'; emit(true)
-  return { request, provenance: game.provenance, stats, results, diagnostics,coverage:{kind:'bounded_circle',center:{px:request.px,py:request.py},radius:request.radius,visitedPixels:stats.pixels,visitedByTheatre,eligible:candidates.length,populationsExamined:stats.simulated,failed:stats.errors,matchingResults,retained:results.length,truncated:matchingResults>results.length,completeWithinQuery:stats.phase==='Complete'&&stats.errors===0,exhaustiveWorld:false,roadRegions:game.world.roadRegions(),note:'Only this requested circle was examined; all other coordinates are unexplored by this result. Cyrodiil generated spawns are excluded by source zone law; static/lair/quest/abyss/zone-hall dungeons are outside this generated-spawn scope.'} }
+  return { request, provenance: game.provenance, stats, results, diagnostics,...(collectAll?{populations}:{}),coverage:{kind:'bounded_circle',center:{px:request.px,py:request.py},radius:request.radius,visitedPixels:stats.pixels,visitedByTheatre,eligible:candidates.length,populationsExamined:stats.simulated,failed:stats.errors,matchingResults,retained:results.length,truncated:matchingResults>results.length,completeWithinQuery:stats.phase==='Complete'&&stats.errors===0,exhaustiveWorld:false,roadRegions:game.world.roadRegions(),note:'Only this requested circle was examined; all other coordinates are unexplored by this result. Cyrodiil generated spawns are excluded by source zone law; static/lair/quest/abyss/zone-hall dungeons are outside this generated-spawn scope.'} }
 }

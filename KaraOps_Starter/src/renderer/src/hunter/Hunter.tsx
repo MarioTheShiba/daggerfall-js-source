@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { HunterCatalog, HunterHistory, HunterResult, HunterStatus, ScanRequest, NavigationRequest } from '../../../shared/hunterTypes'
 import { XRay } from './XRay'
+import {Jackpot} from './Jackpot'
 
 const initial: ScanRequest = { px: 780, py: 100, radius: 15, species: 34, level: 1, region: -1, minTargets: 1, eliteOnly: true, alternate: false, profile: 'dex-mudex' }
 const bridge = () => window.karaops.hunter
@@ -63,8 +64,9 @@ export function Hunter() {
   const progress = busy || status.geometry || status.state==='analysis_error' ? status.progress : status.scan?.stats ?? status.progress
   const provenance = status.scan?.provenance ?? catalog?.provenance
   return <section className="hunter">
-    <div className="eyebrow">OFFLINE / TAMRIEL DUNGEON HUNTER / v0.5</div>
+    <div className="eyebrow">OFFLINE / TAMRIEL DUNGEON HUNTER / v0.6</div>
     <h1>Find your quarry.</h1>
+    <Jackpot status={status} requestValid={/^-?\d+$/.test(coordinates.px)&&/^-?\d+$/.test(coordinates.py)} request={request} onInspect={id=>setSelection(id)}/>
     <p className="lead">Source-generated online layouts, resolved enemy populations, and a floor-based 2D X-Ray. Live availability and reachability remain unknown.</p>
     <div className="hunter-caution">Bounded searches across source Tamriel theatres. Original ARENA2, traced geography, source-generated roads and curated blocks. External world-data/land edits, runtime quests and live spawn clocks are not reproduced. Cyrodiil's open zone excludes generated spawns. This is not an exhaustive world scan.</div>
     <div className="hunter-controls">
@@ -116,6 +118,7 @@ export function Hunter() {
         <p>All species: {selected.population.base} resolved base enemies → {selected.population.expanded} expanded enemies. Unresolved: {selected.population.unresolved}. Excluded by source marker/water rules: {selected.population.excluded}. Layout {selected.size}, {selected.blocks.length} blocks{selected.curated !== null ? `, curated ${selected.curated}` : ''}.</p>
         <p>{directions(selected)}</p>
         <button onClick={() => void bridge().copy(`${selected.px},${selected.py}`).catch(e => setError(String(e)))}>Copy tile</button> <button onClick={() => void bridge().copy(directions(selected)).catch(e => setError(String(e)))}>Copy directions</button>
+        {selected.markerCoordinatesOmitted&&<p>Compact capture: marker coordinates were omitted to bound memory. Open 2D X-Ray to reconstruct all real species positions against current, matching inputs.</p>}
         <BlockOverview result={selected}/>
         <details><summary>Target marker coordinates (metres, Y up)</summary><div className="hunter-table"><table><thead><tr><th>Block</th><th>X</th><th>Y</th><th>Z</th><th>Origin</th><th>Copies</th></tr></thead><tbody>{selected.targets.map((m, i) => <tr key={i}><td>{m.blockIndex}</td><td>{m.x.toFixed(2)}</td><td>{m.y.toFixed(2)}</td><td>{m.z.toFixed(2)}</td><td>{m.fixed ? 'fixed' : 'random'}</td><td>{m.copies}</td></tr>)}</tbody></table></div></details>
         <details><summary>Evidence and population by species</summary><pre>{JSON.stringify({ mapId: selected.mapId, templateId: selected.templateId, populationSeed: selected.populationSeed, encounterSeed: selected.tableSeed, spawnRoll: selected.spawnRoll, gates: selected.gates, counts: selected.counts, blocks: selected.blocks }, null, 2)}</pre></details>
@@ -126,7 +129,7 @@ export function Hunter() {
         <button disabled={busy} onClick={() => void observe(true)}>Save target</button> <button disabled={busy || actual === '' || !Number.isInteger(Number(actual))} onClick={() => void observe(false)}>Record visit</button>
       </article>}
     </div>}
-    {status.geometry && status.state!=='analysis_error' && status.geometry.mapId===selected?.mapId && <XRay key={`${status.geometry.mapId}:${status.geometry.cache?.key??status.geometry.provenance.sourceFingerprint}`} geometry={status.geometry} catalog={catalog} navigation={status.navigation} busy={busy} onNavigate={request=>void navigate(request)}/>}
+    {status.geometry && status.state!=='analysis_error' && status.geometry.mapId===selected?.mapId && <XRay key={`${status.geometry.mapId}:${status.geometry.cache?.key??status.geometry.provenance.sourceFingerprint}`} geometry={status.geometry} catalog={catalog} coffer={status.jackpot?.aurum?.mapId===status.geometry.mapId?status.jackpot.aurum:undefined} navigation={status.jackpot?.aurum?.mapId===status.geometry.mapId&&status.jackpot.aurum.approved&&status.jackpot.aurum.navigationResult?status.jackpot.aurum.navigationResult:status.navigation} busy={busy} onNavigate={request=>void navigate(request)}/>}
     {provenance && <details><summary>Source / asset provenance and limits</summary><p>{provenance.scope}</p>{provenance.warnings.map(w => <p key={w}>{w}</p>)}<pre>{JSON.stringify(provenance, null, 2)}</pre></details>}
     <details><summary>Saved targets and manual observations ({history.observations.length})</summary>{[...history.observations].reverse().map((o, i) => <p key={i}>{o.name} · {new Date(o.observedAt).toLocaleString()} · {o.actualCount === null ? 'Bookmark' : `Saw ${o.actualCount}`} · {o.notes}<br/><small>Source {o.sourceFingerprint.slice(0, 16)} · level {o.request.level} · {o.request.profile}. Historical, not current live state.</small></p>)}</details>
   </section>

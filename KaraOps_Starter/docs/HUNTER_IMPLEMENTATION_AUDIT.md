@@ -1,3 +1,27 @@
+# v0.6 implementation audit ? 2026-10-31
+
+The existing v0.5 scanner was extended in place. No DFO source, ARENA2 file, game client or account state was modified. All work remains offline.
+
+The user's fetched upstream/main is 090f4288666940c9b47f08cf0264d9a40ad29097. The working checkout remains main 1d51aadbbd, with the same tested src/vendor population fingerprint 88cf9bbac96e0efb3c1f30948e8505658a965d2c2247c1d2e7f55d7a42251804. The new Aurum files are present only in the fetched revision. Relevant layout, collider, motor, action, identity, floor landing, texture-size and loot-pile helpers were compared with that revision. Runtime coffer analysis verifies their normalized source hashes; isHallMapId is checked by its exact extracted declaration because unrelated wire code changed.
+
+jackpot.mjs imports FOE_FAMILIES, foeFamily, allLegendaries, foundAmong, legendariesFor, corpseSource, dungeonFamily, dungeonRarityTier, rarityChances and plain-foe cap weights from the selected checkout. Families include separate warrior, rogue and caster sets; unknown/custom species remain unclassified. Elite-expanded counts are separate from base markers. Library captures retain every reconstructed eligible population, including zero-Dragonling candidates. Ranking uses compact distributions, never raster/geometry reconstruction. Compatible saved query union deduplicates map IDs and rejects inconsistent populations. JSON and quoted CSV exports preserve source/configuration/coverage; expected actual drops remain null/UNKNOWN.
+
+The Legendary reference model assumes one eligible roll of a stated compatible item per modeled corpse/pile, Luck 50, find x1, captured effective level, source Elite quality, non-champion and baseline room quarter weights where applicable. These are stated comparison assumptions, not an observed real drop process. Browser-only custom Legendary registrations are not automatically activated. Exact conditional target selection is distinct from unknown unconditional loot odds.
+
+The fetched lootRarity change excludes unrolled custom Legendary records from random rolls. Those browser-only custom registrations are outside the tested built-in catalog; all loaded built-in pools and requested family associations are unchanged. No acquisition score is claimed for unrolled/custom-only rewards.
+
+Aurum reconstruction uses only selected dungeons. scripts/prepare-aurum-reference.mjs reads pinned Git objects without changing the checkout; the portable app carries the reference and MIT license and needs no Git executable. aurum.mjs uses AST-selected, audited pure declarations; account/session/claim/host activation code is never compiled or invoked. Source random treasure ordering and online icon seeds, TEXTURE.216 classic dimensions, fixed-marker centre conversion and random floorLanding are reproduced. The existing ActionSystem builds closed door/at-rest mover buckets, with static mesh grouped under the actual dungeon bucket. Actual aurumCacheFoot handles the eight directions, bounding gaps, walls, floor/ceiling, other piles, doors and movers, and returns verified placement or verified absence under that at-rest reconstruction.
+
+Approval is a separate coffer-approval.json file, preserving the existing two-path settings schema. It requires explicit authority/evidence and defaults closed. The worker and main process both withhold exact foot, floor, pile and navigation result coordinates when approval is absent. Manual notes in coffer-notes.json are not account observations. Source-motor route checks can remain Unverified despite successful placement. Approved results can reuse the existing 2D marker and route visualization; no approval was established here, so the actual delivered UI remains gated.
+
+Private parity tests import the untouched full fetched Aurum module from a read-only Git archive exported inside release/verification. This is separate from the packaged AST adapter. Tests compare hashes, identity, eligibility, synthetic blockers/fallback and three real dungeon coordinates. Test oracle preparation is reproducible with node scripts/prepare-aurum-oracle.mjs; it does not edit or switch the game checkout.
+
+Persistent captures are bounded and checksummed; library entries are not LRU-evicted. Old calculation cache keys invalidate on the changed adapter. Retained legacy rows can migrate family/species metrics, but absent treasure/loot metadata disables Legendary scoring for incomplete legacy rows. The Import retained legacy cache action validates old cache checksums/schema, source, assets and world-data identity, then imports distinct retained query snapshots without discovery. Different selected-species queries receive distinct migration IDs. Partial/corrupt/incompatible entries are excluded; missing loot metadata is visibly Unverified. Previously discarded candidates require a fresh capture. A compatible full capture takes precedence over an incomplete legacy duplicate in query unions. Existing settings/history remain intact. Query unions cover saved compatible circles only, not the world. Unsupported secret, teleporter, water, movement-magic and raster cases still propagate Unverified.
+
+Historical audits follow.
+
+---
+
 # Hunter implementation audit — v0.5.0 Tamriel discovery
 
 Date: 2026-10-31. The existing project is extended; v0.4 maps, source population scenarios, cache, settings and bounded navigation remain intact. No game source/assets, client, packets or gameplay were modified.

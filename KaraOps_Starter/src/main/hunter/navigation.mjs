@@ -1,10 +1,10 @@
 import { assembleGeometry } from './geometry.mjs'
 import { actionIndex } from './actions.mjs'
 
-export function navigationRequest(value){
+export function navigationRequest(value,coffer=false){
   if(!value||typeof value!=='object')throw new Error('Invalid navigation request')
   if(!['single','species','tour','between'].includes(value.goal))throw new Error('Invalid route goal')
-  if(!Array.isArray(value.targetIds)||value.targetIds.length>16||value.targetIds.some(id=>typeof id!=='string'||!/^enemy:\d{1,5}$/.test(id)))throw new Error('Select up to 16 target IDs')
+  if(!Array.isArray(value.targetIds)||value.targetIds.length>16||value.targetIds.some(id=>typeof id!=='string'||!(/^enemy:\d{1,5}$/.test(id)||coffer&&id==='coffer')))throw new Error('Select up to 16 target IDs')
   if(new Set(value.targetIds).size!==value.targetIds.length||(value.goal==='single'||value.goal==='between')&&value.targetIds.length!==1||value.goal==='tour'&&value.targetIds.length===0)throw new Error('Select distinct objectives; single/between requires one target')
   if(!Number.isInteger(value.species)||value.species<0||value.species>1023)throw new Error('Invalid species')
   if(typeof value.startId!=='string'||(value.startId!=='entrance'&&!/^enemy:\d{1,5}$/.test(value.startId)))throw new Error('Invalid start')
@@ -15,7 +15,7 @@ export function navigationRequest(value){
 }
 
 export async function navigate(game,spec,input,progress=()=>{},limits={}){
-  const profile=navigationRequest(input),started=performance.now(),context={}
+  const profile=navigationRequest(input,!!limits.objective),started=performance.now(),context={}
   const geometry=await assembleGeometry(game,spec,context)
   const index=await actionIndex(game,context),{actions,collider,mechanisms,A,R,safeDoor,surfaces}=index
   const bake=await game.load('navBake','ai/nav/navBake'), nav=await game.load('navmesh','ai/nav/navmesh'),motor=await game.load('motor','player/motor'),entry=await game.load('entry','player/enterExit'),mystic=await game.load('mystic','systems/mysticism')
@@ -30,7 +30,7 @@ export async function navigate(game,spec,input,progress=()=>{},limits={}){
     if(state==='unlocked')o.currentLockValue=0
     initialDoorStates.push(`User-declared ${key} ${state}; not observed live`)
   }
-  const enemies=geometry.enemies,selected=profile.goal==='species'?enemies.filter(e=>e.mobileType===profile.species&&!e.eliteCopy):profile.targetIds.map(id=>enemies.find(e=>e.id===id))
+  const enemies=[...geometry.enemies,...(limits.objective?[{...limits.objective,id:'coffer',mobileType:-1}]:[])],selected=profile.goal==='species'?enemies.filter(e=>e.mobileType===profile.species&&!e.eliteCopy):profile.targetIds.map(id=>enemies.find(e=>e.id===id))
   if(selected.some(e=>!e))throw new Error('Unknown target ID in selected geometry')
   const targets=selected.slice(0,128)
   const startEnemy=profile.startId==='entrance'?null:enemies.find(e=>e.id===profile.startId)
@@ -135,7 +135,7 @@ export async function navigate(game,spec,input,progress=()=>{},limits={}){
     const enemy=pending.shift(),target=landed(enemy)
     if(Math.abs(enemy.y-target[1])>3){outcomes.push({id:enemy.id,status:'unknown',reasons:['Target marker landing differs by more than 3m; vertical target access unverified.']});continue}
     const route=plan(current,target,enemy.id);outcomes.push(route)
-    if(route.points){routes.push({kind:'outbound',target:enemy.id,...route});current=route.end;steps.push({kind:'destination',at:[...current],sheet:context.sheetAt(current[1]),text:`Reach ${enemy.id} mobileType ${enemy.mobileType} near source marker (${enemy.x.toFixed(2)}, ${enemy.y.toFixed(2)}, ${enemy.z.toFixed(2)}); combat and moving enemies are not modeled.`})}
+    if(route.points){routes.push({kind:'outbound',target:enemy.id,...route});current=route.end;steps.push({kind:'destination',at:[...current],sheet:context.sheetAt(current[1]),text:enemy.id==='coffer'?'Reach the source-verified Aurum coffer foot; account reward availability remains unverified.':`Reach ${enemy.id} mobileType ${enemy.mobileType} near source marker (${enemy.x.toFixed(2)}, ${enemy.y.toFixed(2)}, ${enemy.z.toFixed(2)}); combat and moving enemies are not modeled.`})}
     await new Promise(resolve=>setImmediate(resolve))
   }
   for(const enemy of pending)outcomes.push({id:enemy.id,status:'unknown',reasons:['Search budget exhausted; not proof of impossibility.']})

@@ -44,3 +44,8 @@
 .navigation-steps { max-height: 390px; overflow: auto; padding-left: 26px; }
 .navigation-steps li { padding: 7px 0; color: #c1cbd0; line-height: 1.6; }
 .navigation-mechanism { border-bottom: 1px solid #344753; padding: 12px 0; }
+
+.jackpot { margin: 1rem 0; padding: 1rem; border: 1px solid #334256; border-radius: 8px; }
+.jackpot summary { cursor: pointer; font-weight: 600; }
+.jackpot .hunter-table { max-height: 520px; overflow: auto; }
+.jackpot td { min-width: 130px; vertical-align: top; }

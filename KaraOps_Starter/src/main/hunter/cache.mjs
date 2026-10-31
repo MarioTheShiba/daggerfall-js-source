@@ -2,7 +2,7 @@ import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync, renameSy
 import { join } from 'node:path'
 import { digest } from './compatibility.mjs'
 export const CACHE_SCHEMA = 'karaops-2a-1'
-const adapterHash = digest(['engine.mjs','world.mjs','geometry.mjs','navigation.mjs','actions.mjs','cache.mjs','compatibility.mjs','source-contract.mjs'].map(name=>readFileSync(new URL(name,import.meta.url),'utf8')).join('\n'))
+const adapterHash = digest(['engine.mjs','jackpot.mjs','aurum.mjs','aurum-source.json','library.mjs','world.mjs','geometry.mjs','navigation.mjs','actions.mjs','cache.mjs','compatibility.mjs','source-contract.mjs'].map(name=>readFileSync(new URL(name,import.meta.url),'utf8')).join('\n'))
 export function cacheKey(provenance, request, operation) {
   return digest(JSON.stringify([CACHE_SCHEMA, adapterHash, operation, provenance.sourceFingerprint, provenance.assetHashes, provenance.worldData?.fingerprint, request]))
 }

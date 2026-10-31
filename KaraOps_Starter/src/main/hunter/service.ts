@@ -73,17 +73,38 @@ export class HunterService {
     if(!Number.isInteger(mapId)||!scan||!geometry||geometry.mapId!==mapId||this.current.state!=='complete')throw new Error('Open a completed 2D map before requesting navigation')
     return this.start(settings,null,{px:geometry.px,py:geometry.py,request:scan.request,expected:geometry.provenance,navigation})
   }
-  async start(settings: KaraOpsSettings, input: unknown, mapSpec?: { px: number; py: number; request: ScanRequest; expected: import('../../shared/hunterTypes').Provenance; navigation?: NavigationRequest }): Promise<number> {
+  async jackpot(settings:KaraOpsSettings,input:unknown):Promise<number>{
+    if(!input||typeof input!=='object'||JSON.stringify(input).length>12000)throw new Error('Invalid Jackpot command')
+    const j=input as import('../../shared/jackpotTypes').JackpotCommand
+    if(!['capture','rank','library','inspect','aurum','aurumRoute','import','migrateCache','approval','claim'].includes(j.operation))throw new Error('Invalid Jackpot operation')
+    if(!['capture','library','import','migrateCache','approval','claim'].includes(j.operation)&&(typeof j.id!=='string'||!/^[a-f0-9]{64}$/.test(j.id)))throw new Error('Invalid capture ID')
+    if(['inspect','aurum','aurumRoute'].includes(j.operation)&&!Number.isSafeInteger(j.mapId))throw new Error('Invalid captured map ID')
+    if(j.operation==='approval'){
+      if(typeof j.approved!=='boolean'||typeof j.authority!=='string'||j.authority.length>100||typeof j.evidence!=='string'||j.evidence.length>1000||j.approved&&(!j.authority.trim()||!j.evidence.trim()))throw new Error('Approval requires named developer authority and evidence')
+      const path=join(this.dataDir,'coffer-approval.json');writeFileSync(path+'.tmp',JSON.stringify({approved:j.approved,authority:j.authority,evidence:j.evidence,recordedAt:new Date().toISOString(),manualAttestation:true}));renameSync(path+'.tmp',path)
+      if(this.current.jackpot?.aurum){this.current.jackpot.aurum=undefined}
+      return this.current.id
+    }
+    if(j.operation==='claim'){
+      const a=this.current.jackpot?.aurum;if(!a?.id||!['unknown','manually_unclaimed','manually_claimed'].includes(j.claim??''))throw new Error('Analyze a coffer before recording a manual account note')
+      const path=join(this.dataDir,'coffer-notes.json');let notes:Record<string,string>={};try{notes=JSON.parse(readFileSync(path,'utf8'))}catch{};notes[a.id]=j.claim!;writeFileSync(path+'.tmp',JSON.stringify(notes));renameSync(path+'.tmp',path);a.accountState=j.claim!;return this.current.id
+    }
+    if(j.operation==='import'&&!this.current.scan)throw new Error('Complete an ordinary Hunter scan first')
+    if(j.combine!==undefined&&typeof j.combine!=='boolean')throw new Error('Invalid capture union switch')
+    const command={combine:j.combine,operation:j.operation,id:j.id,mapId:j.mapId,criteria:j.criteria,...(j.operation==='import'?{scan:this.current.scan}:{})}
+    return this.start(settings,j.operation==='capture'?validateRequest(j.request):null,undefined,command)
+  }
+  async start(settings: KaraOpsSettings, input: unknown, mapSpec?: { px: number; py: number; request: ScanRequest; expected: import('../../shared/hunterTypes').Provenance; navigation?: NavigationRequest }, jackpot?:Omit<import('../../shared/jackpotTypes').JackpotCommand,'request'>): Promise<number> {
     if (this.starting) throw new Error('A Hunter request is already starting')
     const request = input === null ? null : validateRequest(input)
-    if (!settings.arena2Path || !settings.dfoSourcePath) throw new Error('Choose ARENA2 and DFO source folders in Settings first.')
+    if ((!jackpot||['capture','aurum','aurumRoute','import','migrateCache'].includes(jackpot.operation))&&(!settings.arena2Path || !settings.dfoSourcePath)) throw new Error('Choose ARENA2 and DFO source folders in Settings first.')
     this.starting = true
     try {
     await this.cancel()
     const id = this.current.id + 1
-    this.current = { id, state: 'running', catalog: this.current.catalog, ...(mapSpec ? { scan: this.current.scan } : {}), ...(mapSpec?.navigation ? {geometry:this.current.geometry}:{}), progress: { phase: 'Validating files and loading algorithms' } }
+    this.current = { id, state: 'running', catalog: this.current.catalog, jackpot:this.current.jackpot, ...((mapSpec||jackpot) ? { scan: this.current.scan } : {}), ...((mapSpec?.navigation||jackpot) ? {geometry:this.current.geometry,navigation:this.current.navigation}:{}), progress: { phase: 'Validating files and loading algorithms' } }
     if (request) this.saveHistory({ ...this.history(), lastRequest: request })
-    const worker = new Worker(this.workerPath, { workerData: { settings, request, mapSpec, dataDir: this.dataDir }, resourceLimits: { maxOldGenerationSizeMb:1536 } })
+    const worker = new Worker(this.workerPath, { workerData: { settings, request, mapSpec,jackpot, appPath:process.env.KARAOPS_APP_PATH, dataDir: this.dataDir }, resourceLimits: { maxOldGenerationSizeMb:1536 } })
     this.worker = worker
     this.timer = setTimeout(() => {
       if (this.worker !== worker) return
@@ -93,6 +114,10 @@ export class HunterService {
     worker.on('message', message => {
       if (this.worker !== worker) return
       if (message.kind === 'progress') this.current = { ...this.current, progress: message.value }
+      if(message.kind==='jackpot'){
+        if(message.value.aurum){let approval:{approved?:boolean;authority?:string;evidence?:string}={};try{approval=JSON.parse(readFileSync(join(this.dataDir,'coffer-approval.json'),'utf8'))}catch{};if(!approval.approved||!approval.authority?.trim()||!approval.evidence?.trim()){const {foot,sheet,pile,navigationResult,...ordinary}=message.value.aurum;message.value.aurum={...ordinary,approved:false}}}
+        this.current={...this.current,state:'complete',jackpot:{library:[],...this.current.jackpot,...message.value},catalog:message.value.catalog??this.current.catalog,progress:{phase:'Jackpot ready'}};finish()}
+      if(message.kind==='inspect'){this.current={...this.current,state:'complete',scan:message.value,geometry:undefined,navigation:undefined,progress:{phase:'Captured dungeon selected; rebuild map to verify current inputs'}};finish()}
       if (message.kind === 'complete') { this.current = { ...this.current, state: 'complete', ...(mapSpec?.navigation ? {navigation:message.value} : mapSpec ? { geometry: message.value } : request ? { scan: message.value } : { catalog: message.value }), progress: { phase: mapSpec?.navigation?'Navigation analysis ready':mapSpec ? '2D map ready' : request ? message.value.stats.phase : 'Data validated' } }; finish() }
       if (message.kind === 'error') { this.current = { ...this.current, state: 'analysis_error', error: message.message }; finish() }
     })

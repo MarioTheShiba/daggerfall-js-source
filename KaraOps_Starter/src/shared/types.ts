@@ -12,6 +12,7 @@ export interface AppInfo {
 }
 
 export interface KaraOpsBridge {
+  jackpot: import('./jackpotTypes').JackpotBridge
   hunter: import('./hunterTypes').HunterBridge
   getSettings(): Promise<KaraOpsSettings>
   saveSettings(settings: KaraOpsSettings): Promise<KaraOpsSettings>

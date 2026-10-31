@@ -2,6 +2,7 @@ import { app, BrowserWindow, clipboard, dialog, ipcMain, session } from 'electro
 import { HunterService } from './hunter/service'
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+import {pathToFileURL} from 'node:url'
 import { DEFAULT_SETTINGS, type FolderKind, type KaraOpsSettings } from '../shared/types'
 
 let mainWindow: BrowserWindow | null = null
@@ -21,6 +22,7 @@ if (portableDir) {
   app.setPath('userData', profileDir)
 }
 const settingsFile = join(dataDir, 'settings.json')
+process.env.KARAOPS_APP_PATH=app.getAppPath()
 const hunter = new HunterService(app.isPackaged ? join(process.resourcesPath, 'hunter/worker.mjs') : join(app.getAppPath(), 'src/main/hunter/worker.mjs'), dataDir)
 app.on('before-quit', () => { void hunter.cancel() })
 
@@ -52,6 +54,9 @@ function verifySender(event: Electron.IpcMainInvokeEvent): void {
 }
 
 function installIpc(): void {
+  ipcMain.handle('jackpot:run',(event,command:unknown)=>{verifySender(event);return hunter.jackpot(loadSettings(),command)})
+  ipcMain.handle('jackpot:export',async(event,format:unknown)=>{verifySender(event);if(format!=='csv'&&format!=='json')throw new Error('Invalid export format');const result=hunter.status().jackpot?.ranking;if(!result||!mainWindow)throw new Error('Rank a capture first');const file=await dialog.showSaveDialog(mainWindow,{defaultPath:join(dataDir,'KaraOps-Jackpot.'+format),filters:[{name:format.toUpperCase(),extensions:[format]}]});if(file.canceled||!file.filePath)return null;const mod=await import(/* @vite-ignore */ pathToFileURL(app.isPackaged?join(process.resourcesPath,'hunter/jackpot.mjs'):join(app.getAppPath(),'src/main/hunter/jackpot.mjs')).href);writeFileSync(file.filePath,mod.exportRanking(result,format),'utf8');return file.filePath})
+
   ipcMain.handle('hunter:navigate',(event,mapId:unknown,request:unknown)=>{verifySender(event);return hunter.navigate(loadSettings(),mapId,request)})
   ipcMain.handle('hunter:map', (event, mapId: unknown) => { verifySender(event); return hunter.map(loadSettings(), mapId) })
   ipcMain.handle('hunter:start', (event, request: unknown) => { verifySender(event); return hunter.start(loadSettings(), request) })

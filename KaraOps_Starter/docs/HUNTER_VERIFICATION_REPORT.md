@@ -1,3 +1,9 @@
+# v0.6 verification ? Universal Jackpot & Aurum
+
+See [the current v0.6 verification record](V06_VERIFICATION.md) for executable identity, exact tests, source revisions, coverage and limitations. The v0.5 report below is historical and describes its own executable and source state.
+
+---
+
 # Hunter verification report — v0.5.0 Tamriel-Wide Dungeon Hunter
 
 Date: 2026-10-31, Europe/Bucharest. Existing v0.4 functionality preserved; bounded generated-spawn discovery now supports all ten source theatres. **This is not an exhaustive World Jackpot Scanner and does not establish live availability.**

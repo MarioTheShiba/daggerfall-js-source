@@ -1,6 +1,6 @@
 {
   "name": "karaops",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "productName": "KaraOps",
   "private": true,
   "description": "Portable, read-only Daggerfall Online Dungeon Hunter",
@@ -19,9 +19,11 @@
     "test": "node --test tests/*.test.mjs",
     "test:hunter:local": "node --test tests/hunter-local.mjs",
     "test:geometry:local": "node --test tests/geometry-local.mjs",
-    "test:world:local": "node --test tests/world-local.mjs"
+    "test:world:local": "node --test tests/world-local.mjs",
+    "test:jackpot:local": "node --test tests/jackpot-local.mjs"
   },
   "dependencies": {
+    "acorn": "^8.19.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

@@ -1,3 +1,4 @@
+import type {FarmingCatalog,PopulationAnalysis,JackpotStatus} from './jackpotTypes'
 export type Feasibility = 'reachable' | 'reachable_with_conditions' | 'partially_reachable' | 'proven_unreachable' | 'unknown' | 'analysis_error'
 export interface ScanRequest {
   theatre?:number; rankBy?:'targets'|'purity'
@@ -5,10 +6,10 @@ export interface ScanRequest {
   eliteOnly: boolean; alternate: boolean; profile: 'vanilla' | 'dex' | 'dex-mudex'
 }
 export interface Provenance { schema: number; sourceFingerprint: string; assetHashes: Record<string, string>; templates: number; scope: string; warnings: string[]; worldData?: { fingerprint: string; diagnostic: string; rdbOverrides: string[]; files: { path: string; sha256: string; entries: number; rdb: number }[] } }
-export interface HunterCatalog { provenance: Provenance; theatres:{id:number;key:string;name:string;px:number;py:number;bounds:{x0:number;y0:number;x1:number;y1:number}|null;spawnPolicy:string}[]; towns: { name: string; px: number; py: number; region: number }[]; species: { id: number; name: string }[]; regions: { id: number; name: string }[] }
+export interface HunterCatalog { farming?:FarmingCatalog; provenance: Provenance; theatres:{id:number;key:string;name:string;px:number;py:number;bounds:{x0:number;y0:number;x1:number;y1:number}|null;spawnPolicy:string}[]; towns: { name: string; px: number; py: number; region: number }[]; species: { id: number; name: string }[]; regions: { id: number; name: string }[] }
 export interface HunterProgress { phase: string; pixels?: number; hashCandidates?: number; eligible?: number; simulated?: number; errors?: number; elapsedMs?: number }
 export interface EnemyMarker { x: number; y: number; z: number; mobileType: number; fixed: boolean; blockIndex: number; loadID: number; copies: number }
-export interface HunterResult {
+export interface HunterResult { captureId?:string;markerCoordinatesOmitted?:boolean; analysis?:PopulationAnalysis;
   theatre:number;province:string;region:number;eligibility:string;verification:string;dragonlings:number;totalEnemies:number;dragonlingPercentage:number
   mapId: number; templateId: number; name: string; px: number; py: number; elite: boolean; type: number; size: string; curated: number | null
   count: number; fixed: number; random: number; copies: number; counts: Record<string, number>; distance: number; targets: EnemyMarker[]
@@ -37,7 +38,7 @@ export interface NavigationPoint { at: number[]; sheet: number }
 export interface NavigationOutcome { id: string; status: Feasibility; reasons: string[]; conditions?: string[]; points?: NavigationPoint[]; distance?: number }
 export interface NavigationMechanism { key: string; ns: number; kind: string; secret: boolean; special: boolean; action: string; triggers: string[]; next: string | null; chain: string[]; chainMovers: string[]; at: number[]; sheet: number; lock: number | null; teleportDestination: number[] | null; modeled: boolean; reason: string }
 export interface NavigationResult { mapId: number; status: Feasibility; profile: NavigationRequest; outcomes: NavigationOutcome[]; routes: (NavigationOutcome & { kind: 'outbound'|'return'; points: NavigationPoint[] })[]; steps: {kind: string; at: number[]; sheet: number; text: string; object?: string}[]; exit: NavigationOutcome | null; mechanisms: NavigationMechanism[]; assumptions: string[]; completeModel: boolean; entrance: NavigationPoint; stats: {targets: number; reached: number; probes: number; elapsedMs: number; polys: number; cells: number; cs: number; outOfBudget: boolean}; failures: {id: string; reason: string; at?: number[]; sheet?: number}[]; cache?: {hit:boolean} }
-export interface HunterStatus { id: number; state: 'idle' | 'running' | 'complete' | 'cancelled' | 'analysis_error'; progress: HunterProgress; catalog?: HunterCatalog; scan?: HunterScan; geometry?: HunterGeometry; navigation?: NavigationResult; error?: string }
+export interface HunterStatus { jackpot?:JackpotStatus; id: number; state: 'idle' | 'running' | 'complete' | 'cancelled' | 'analysis_error'; progress: HunterProgress; catalog?: HunterCatalog; scan?: HunterScan; geometry?: HunterGeometry; navigation?: NavigationResult; error?: string }
 export interface HunterObservation { mapId: number; px: number; py: number; name: string; sourceFingerprint: string; assetHashes: Record<string, string>; request: ScanRequest; observedAt: string; actualCount: number | null; notes: string }
 export interface HunterHistory { lastRequest?: ScanRequest; observations: HunterObservation[] }
 export interface HunterBridge {

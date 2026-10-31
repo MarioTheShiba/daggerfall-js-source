@@ -6,6 +6,8 @@ extraResources:
     to: hunter
     filter:
       - '*.mjs'
+      - 'aurum-source.json'
+      - 'DFO-LICENSE.txt'
 directories:
   output: release
 files:

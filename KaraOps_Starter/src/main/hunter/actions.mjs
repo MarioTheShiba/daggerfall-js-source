@@ -1,5 +1,5 @@
 // Inert, offline construction of the same per-block-instance ActionSystem as dungeonContext.
-export async function actionIndex(game, context) {
+export async function actionIndex(game, context, staticBucket=null) {
   const A=await game.load('actions','world/actionSystem'), R=await game.load('rdb','world/rdbLayout')
   const sense=await game.load('sense','systems/dungeon/dungeonSense'), echo=await game.load('echo','systems/dungeon/dungeonEcho')
   const {Collider}=await game.load('collider','player/collider'), {multiply,trs}=await game.load('mat4','world/mat4')
@@ -21,7 +21,7 @@ export async function actionIndex(game, context) {
         records.set(o.key,p.action)
         if(A.hasActionCollision(o))surfaces.addMesh(o.key,cpu.positions,cpu.indices,matrix)
       }
-      if(!o || !['action','door'].includes(o.kind))collider.addMesh(`static:${bi}:${p.position}`,cpu.positions,cpu.indices,matrix)
+      if(!o || !['action','door'].includes(o.kind))collider.addMesh(staticBucket??`static:${bi}:${p.position}`,cpu.positions,cpu.indices,matrix)
     }
     for(const d of b.layout.actionDoors){
       if(d.disabled)continue

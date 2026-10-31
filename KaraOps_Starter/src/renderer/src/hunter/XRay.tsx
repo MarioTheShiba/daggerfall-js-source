@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { HunterGeometry, HunterCatalog, NavigationRequest, NavigationResult } from '../../../shared/hunterTypes'
 import { Navigation } from './Navigation'
 
-export function XRay({ geometry: g, catalog, navigation, busy=false, onNavigate }: { geometry: HunterGeometry; catalog: HunterCatalog | null; navigation?: NavigationResult; busy?: boolean; onNavigate: (request:NavigationRequest)=>void }) {
+export function XRay({ geometry: g, catalog, navigation, coffer, busy=false, onNavigate }: { geometry: HunterGeometry; catalog: HunterCatalog | null; navigation?: NavigationResult; coffer?:import('../../../shared/jackpotTypes').JackpotStatus['aurum']; busy?: boolean; onNavigate: (request:NavigationRequest)=>void }) {
   const full = { x:g.bounds.x0-3, y:-g.bounds.z1-3, w:g.bounds.x1-g.bounds.x0+6, h:g.bounds.z1-g.bounds.z0+6 }
   const [view,setView] = useState(full)
   const [floor,setFloor] = useState(g.entrance?.sheet ?? 0)
@@ -78,6 +78,7 @@ export function XRay({ geometry: g, catalog, navigation, busy=false, onNavigate 
         <title>{`${name(e.mobileType)} (${e.mobileType}) · ${e.fixed?'fixed':'resolved random'} · ${e.eliteCopy?'Elite copy':'base record'} · block ${e.blockIndex} · XYZ ${e.x.toFixed(2)}, ${e.y.toFixed(2)}, ${e.z.toFixed(2)}`}</title>
       </g>)}
       {g.entrance?.sheet===floor && <g data-inspect="entrance" onClick={entrance} className="xray-entrance"><circle cx={g.entrance.x} cy={-g.entrance.z} r={radius*1.7}/><title>Dungeon entrance</title></g>}
+      {coffer?.approved&&coffer.foot&&coffer.sheet===floor&&<rect data-inspect="aurum-coffer" x={coffer.foot[0]-radius} y={-coffer.foot[2]-radius} width={radius*2} height={radius*2} fill="#ffdc75" onClick={()=>setInspect({kind:'Verified coffer placement',...coffer})}><title>Aurum coffer; navigation {coffer.navigation}; account {coffer.accountState}</title></rect>}
     </svg>
     <p className="xray-legend">Floor fill / boundary walls: source mesh raster · green square: fixed · amber circle: resolved random · hollow: Elite copy · blue: entrance · red: door at rest · cyan: source stair/ramp join.</p>
     {navigation&&<p className="xray-legend">Green arrows: motor-validated outbound traces · blue dashed: validated return · purple: walk-in navigation start · pink: verified ordinary-door interaction. No route is drawn for Unverified objectives. Traces stop at floor boundaries and continue on their matching floors.</p>}
