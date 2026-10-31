@@ -8,6 +8,7 @@ const directions = (r: HunterResult): string => r.nearest ? `${r.name}: tile (${
 
 export function Hunter() {
   const [request, setRequest] = useState(initial)
+  const [coordinates,setCoordinates]=useState({px:String(initial.px),py:String(initial.py)})
   const [status, setStatus] = useState<HunterStatus>({ id: 0, state: 'idle', progress: { phase: 'Choose Validate data to load the local source and ARENA2' } })
   const [catalog, setCatalog] = useState<HunterCatalog | null>(null)
   const [history, setHistory] = useState<HunterHistory>({ observations: [] })
@@ -21,7 +22,7 @@ export function Hunter() {
   const busy = status.state === 'running'
   useEffect(() => {
     let active = true, polling = false
-    void bridge().history().then(value => { if (active) { setHistory(value); if (value.lastRequest) setRequest(value.lastRequest) } }).catch(e => { if (active) setError(String(e)) })
+    void bridge().history().then(value => { if (active) { setHistory(value); if (value.lastRequest){setRequest(value.lastRequest);setCoordinates({px:String(value.lastRequest.px),py:String(value.lastRequest.py)})} } }).catch(e => { if (active) setError(String(e)) })
     const poll = async () => {
       if (polling) return
       polling = true
@@ -32,8 +33,10 @@ export function Hunter() {
     const timer = setInterval(() => { void poll() }, 500)
     return () => { active = false; clearInterval(timer) }
   }, [])
-  const patch = (value: Partial<ScanRequest>) => setRequest(r => ({ ...r, ...value }))
+  const patch = (value: Partial<ScanRequest>) => {setRequest(r => ({ ...r, ...value }));if(value.px!==undefined||value.py!==undefined)setCoordinates(c=>({px:value.px!==undefined?String(value.px):c.px,py:value.py!==undefined?String(value.py):c.py}))}
+  function coordinate(axis:'px'|'py',value:string){setCoordinates(c=>({...c,[axis]:value}));if(/^-?\d+$/.test(value))setRequest(r=>({...r,[axis]:Number(value)}))}
   async function start(validate: boolean) {
+    if(!validate&&(!/^-?\d+$/.test(coordinates.px)||! /^-?\d+$/.test(coordinates.py))){setError('Enter whole signed world coordinates before scanning.');return}
     setError(''); setSelection(null); setStarted(Date.now())
     try { const id = await bridge().start(validate ? null : request); setStatus({ id, state: 'running', progress: { phase: 'Loading local data' } }) }
     catch (e) { setError(String(e)) }
@@ -55,17 +58,20 @@ export function Hunter() {
     try{const id=await bridge().navigate(status.geometry.mapId,request);setStatus(s=>({...s,id,state:'running',navigation:undefined,progress:{phase:'Baking source traversal graph and validating routes'}}))}
     catch(e){setError(String(e))}
   }
-  const results = [...(status.scan?.results ?? [])].sort((a, b) => sort === 'distance' ? a.distance - b.distance : b.count - a.count || a.distance - b.distance)
+  const results = [...(status.scan?.results ?? [])].sort((a, b) => sort === 'distance' ? a.distance - b.distance :sort==='province'?a.province.localeCompare(b.province)||b.count-a.count:sort==='purity'?b.dragonlingPercentage-a.dragonlingPercentage||b.count-a.count:b.count - a.count || a.distance - b.distance)
   const selected = results.find(r => r.mapId === selection) ?? results[0]
   const progress = busy || status.geometry || status.state==='analysis_error' ? status.progress : status.scan?.stats ?? status.progress
   const provenance = status.scan?.provenance ?? catalog?.provenance
   return <section className="hunter">
-    <div className="eyebrow">OFFLINE / DUNGEON HUNTER / STAGE 1</div>
+    <div className="eyebrow">OFFLINE / TAMRIEL DUNGEON HUNTER / v0.5</div>
     <h1>Find your quarry.</h1>
     <p className="lead">Source-generated online layouts, resolved enemy populations, and a floor-based 2D X-Ray. Live availability and reachability remain unknown.</p>
-    <div className="hunter-caution">Supported scope: Iliac Bay only, original ARENA2 + generated curated blocks. External world-data packs and runtime quest/encounter actors are not reproduced. Counts are base layout predictions, not a live census.</div>
+    <div className="hunter-caution">Bounded searches across source Tamriel theatres. Original ARENA2, traced geography, source-generated roads and curated blocks. External world-data/land edits, runtime quests and live spawn clocks are not reproduced. Cyrodiil's open zone excludes generated spawns. This is not an exhaustive world scan.</div>
     <div className="hunter-controls">
       <button type="button" disabled={busy} onClick={() => void start(true)}>Validate data</button>
+      <label>Province / theatre<select disabled={busy||!catalog} value={request.theatre??-1} onChange={e=>patch({theatre:Number(e.target.value),region:-1})}><option value="-1">Any theatre in search circle</option>{catalog?.theatres.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
+      <label>Jump search center to province<select disabled={busy||!catalog} value="" onChange={e=>{const t=catalog?.theatres.find(t=>t.id===Number(e.target.value));if(t)patch({px:t.px,py:t.py,theatre:t.id,region:-1})}}><option value="">Choose source theatre…</option>{catalog?.theatres.map(t=><option key={t.id} value={t.id}>{t.name} ({t.px},{t.py})</option>)}</select></label>
+      <label>Retain best 100 by<select disabled={busy} value={request.rankBy??'targets'} onChange={e=>patch({rankBy:e.target.value as 'targets'|'purity'})}><option value="targets">Selected species count</option><option value="purity">Dragonling population purity</option></select></label>
       <label>Species<select value={request.species} onChange={e => patch({ species: Number(e.target.value) })} disabled={busy}>
         {(catalog?.species ?? [{ id: 34, name: 'Dragonling' }, { id: 40, name: 'Dragonling_Alternate (quest)' }]).map(s => <option key={s.id} value={s.id}>{s.name} ({s.id})</option>)}
       </select></label>
@@ -75,12 +81,12 @@ export function Hunter() {
       </select></label>
       <label><input type="checkbox" checked={request.alternate} disabled={busy} onChange={e => patch({ alternate: e.target.checked })}/> Alternate random selection</label>
       <label><input type="checkbox" checked={request.eliteOnly} disabled={busy} onChange={e => patch({ eliteOnly: e.target.checked })}/> Elite only</label>
-      <label>Center X (east)<input type="number" min="0" max="999" value={request.px} disabled={busy} onChange={e => patch({ px: Number(e.target.value) })}/></label>
-      <label>Center Y (south)<input type="number" min="0" max="499" value={request.py} disabled={busy} onChange={e => patch({ py: Number(e.target.value) })}/></label>
-      <label>Or center on town<select disabled={busy || !catalog} value="" onChange={e => { const town = catalog?.towns[Number(e.target.value)]; if (town) patch({ px: town.px, py: town.py }) }}>
-        <option value="">Choose a town…</option>{catalog?.towns.map((t, i) => <option key={i} value={i}>{t.name} ({t.px},{t.py})</option>)}
+      <label>Center X (east)<input type="text" inputMode="numeric" maxLength={6} value={coordinates.px} disabled={busy} onChange={e => coordinate('px',e.target.value)}/></label>
+      <label>Center Y (south)<input type="text" inputMode="numeric" maxLength={6} value={coordinates.py} disabled={busy} onChange={e => coordinate('py',e.target.value)}/></label>
+      <label>Or center on town<select disabled={busy || !catalog} value="" onChange={e => { const town = catalog?.towns[Number(e.target.value)]; if (town) patch({ px: town.px, py: town.py,theatre:0,region:-1 }) }}>
+        <option value="">Choose a Bay town…</option>{catalog?.towns.map((t, i) => <option key={i} value={i}>{t.name} ({t.px},{t.py})</option>)}
       </select></label>
-      <label>Region<select disabled={busy || !catalog} value={request.region} onChange={e => patch({ region: Number(e.target.value) })}><option value="-1">All Bay regions</option>{catalog?.regions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}</select></label>
+      <label>Region<select disabled={busy || !catalog} value={request.region} onChange={e => patch({ region: Number(e.target.value) })}><option value="-1">All source regions</option>{catalog?.regions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}</select></label>
       <label>Radius (0–50 tiles)<input type="number" min="0" max="50" disabled={busy} value={request.radius} onChange={e => patch({ radius: Number(e.target.value) })}/></label>
       <label>Minimum targets<input type="number" min="1" max="1000" disabled={busy} value={request.minTargets} onChange={e => patch({ minTargets: Number(e.target.value) })}/></label>
       <button type="button" disabled={busy || !catalog} onClick={() => void start(false)}>Scan</button>
@@ -92,17 +98,20 @@ export function Hunter() {
     {(error || status.error) && <div className="notice" role="alert">{error || status.error}</div>}
     {status.scan && <p>Results for mobileType {status.scan.request.species}, effective level {status.scan.request.level}, {status.scan.request.profile}, {status.scan.request.alternate ? 'alternate' : 'classic'} selection. Changing filters takes effect on the next scan.</p>}
     {status.scan?.cache && <p>Scan cache: {status.scan.cache.hit?'hit (source, assets and world-data contents freshly verified)':'miss; computed and stored locally'}.</p>}
+    {status.scan?.coverage&&<div className="hunter-caution"><strong>Coverage: {status.scan.coverage.completeWithinQuery?'requested circle complete':'partial / errors'}</strong> · {status.scan.coverage.visitedPixels} pixels examined · {status.scan.coverage.populationsExamined}/{status.scan.coverage.eligible} eligible populations analyzed · {status.scan.coverage.matchingResults} matching results, {status.scan.coverage.retained} retained{status.scan.coverage.truncated?' (ranked list truncated)':''}. {status.scan.coverage.note}<details><summary>Coverage by theatre and prepared road regions</summary><pre>{JSON.stringify(status.scan.coverage,null,2)}</pre></details></div>}
     {status.scan?.diagnostics.map((d, i) => <div className="notice" key={i}>{d.status}: {d.px},{d.py} {d.message}</div>)}
     {status.scan && results.length === 0 && <p>No matching base populations in this completed/partial search. This does not prove the species absent elsewhere, or any objective impossible.</p>}
     {results.length > 0 && <div className="hunter-columns">
-      <div><label>Sort<select value={sort} onChange={e => setSort(e.target.value)}><option value="targets">Target count, then distance</option><option value="distance">Distance from center</option></select></label>
+      <div><label>Sort<select value={sort} onChange={e => setSort(e.target.value)}><option value="targets">Target count, then distance</option><option value="purity">Dragonling purity</option><option value="province">Province</option><option value="distance">Distance from center</option></select></label>
         <p>{results.length} results (best 100 retained). Distance is straight-line travel effort; reachability is not ranked.</p>
         <div className="hunter-results">{results.map(r => <button className={selected?.mapId === r.mapId ? 'hunter-result selected' : 'hunter-result'} key={r.mapId} onClick={() => setSelection(r.mapId)}>
           <strong>{r.name}</strong><span>{r.population.targetBase} base targets → {r.population.targetExpanded} {r.elite?'Elite-expanded':'normal'} targets · type {r.type}</span><span>({r.px},{r.py}) · {(r.distance * .8192).toFixed(2)} km from center · nearest {r.nearest?.name ?? 'unknown'}</span>
+          <span>{r.province} · map {r.mapId} · Dragonlings {r.dragonlings}/{r.totalEnemies} ({r.dragonlingPercentage.toFixed(1)}%) · template {r.templateId}</span>
         </button>)}</div>
       </div>
       {selected && <article className="hunter-details">
         <h2>{selected.name}</h2>
+        <p>{selected.province} · world ({selected.px},{selected.py}) · map ID {selected.mapId} · template {selected.templateId} · {selected.elite?'Elite':'Normal'} · {selected.eligibility}. {selected.verification}. Dragonlings: {selected.dragonlings}/{selected.totalEnemies} ({selected.dragonlingPercentage.toFixed(1)}% of resolved population; unresolved markers excluded).</p>
         <p>Selected species: {selected.population.targetBase} base enemies ({selected.fixed} fixed + {selected.random} resolved random) × {selected.copies} = <strong>{selected.population.targetExpanded} {selected.elite?'Elite-expanded':'normal'} targets</strong>.</p>
         <p>All species: {selected.population.base} resolved base enemies → {selected.population.expanded} expanded enemies. Unresolved: {selected.population.unresolved}. Excluded by source marker/water rules: {selected.population.excluded}. Layout {selected.size}, {selected.blocks.length} blocks{selected.curated !== null ? `, curated ${selected.curated}` : ''}.</p>
         <p>{directions(selected)}</p>

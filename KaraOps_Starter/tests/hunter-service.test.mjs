@@ -17,6 +17,10 @@ test('main-process boundary validates limits and strips unexpected renderer keys
   assert.throws(() => validateRequest({ ...request, radius: 1000000 }))
   assert.throws(() => validateRequest({ ...request, eliteOnly: 'yes' }))
 })
+test('main boundary accepts signed world coordinates and validates theatre/purity options',()=>{
+ const q={...request,px:689,py:-210,theatre:1,rankBy:'purity'};assert.deepEqual(validateRequest({...q,command:'ignored'}),q)
+ for(const patch of [{px:-8192},{py:8192},{theatre:10},{theatre:1.5},{rankBy:'all-world'},{region:71}])assert.throws(()=>validateRequest({...q,...patch}))
+})
 test('worker cancellation stops a running job, stale messages do not overwrite next state', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'karaops-worker-test-'))
   const path = join(dir, 'slow.mjs')

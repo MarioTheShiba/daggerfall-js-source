@@ -1,11 +1,13 @@
-# KaraOps v0.4 — Dungeon Navigation, first validated increment
+# KaraOps v0.5 — Tamriel-Wide Dungeon Hunter
 
-**Status:** Existing Hunter and 2D X-Ray preserved. Navigation now bakes DFO's collider navmesh, replays candidate paths through the real PlayerMotor, and shows validated traces, height transitions, ordinary-door interactions, returns and computed walking instructions. Source action chains, secrets and teleporter destinations are indexed. This is a **bounded walking increment**, not the completed puzzle/state-space solver: unsupported triggers, movers, teleport traversal, abilities and missing sampled paths remain **Unverified**. See [the implementation audit](docs/HUNTER_IMPLEMENTATION_AUDIT.md) and [verification report](docs/HUNTER_VERIFICATION_REPORT.md).
+**Status:** Bounded generated-dungeon searches now cover the source Tamriel theatres, preserving v0.4 maps and navigation. Geography is traced from your original ARENA2 files; the adapter uses source fit, ground, reserved places, Cyrodiil exclusion and reconstructed road regions. Search by signed world coordinates or a province preset; inspect Dragonling count, total population, purity, map/template identity and explicit coverage. **No exhaustive world search or live availability is claimed.** See [the implementation audit](docs/HUNTER_IMPLEMENTATION_AUDIT.md) and [verification report](docs/HUNTER_VERIFICATION_REPORT.md).
 
 ## What is implemented
 
 - Existing Electron + React + TypeScript shell with an implemented Dungeon Hunter page.
 - Bounded, cancellable two-pass scans in a Node-capable worker bundled with Electron; no external Node is required by the EXE.
+- All ten source theatres exposed, including the Iliac Bay and nine provinces. Cyrodiil's ordinary generated spawns are excluded by the game's zone law. Coordinates accept negative values within the source world grid; map IDs use the source world lanes without Bay aliases.
+- Province filtering/presets, Dragonling purity ranking and province/count/purity sorting. Every query reports visited pixels, theatre counts, eligible/simulated populations, errors, retained/truncated results and explicitly unexplored coverage. Radius remains bounded at 50 pixels; no World Jackpot Scanner is included.
 - Exact source online sizing/curated-block reconstruction and classic/alternate encounter simulation under explicit vanilla, DEX or DEX+MUDEX scenarios.
 - Ranked base target counts, nearest geometric town, coordinates, source/asset fingerprints, block overview and marker positions. The block overview is not a floor plan or traversal graph.
 - Local bookmarks and manual observations, separate from existing settings. Live availability remains unknown; reachability is evaluated only under explicit offline assumptions.
@@ -39,7 +41,7 @@ After installing dependencies, run `npm test` for unit checks. Real-data parity 
 npm run portable
 ```
 
-Expected output: `release\KaraOps-0.4.0-Portable.exe`. Double-click it directly: **no installer**. The app creates `KaraOpsData\settings.json` alongside the EXE when folder choices are saved, and keeps its profile, Hunter history and bounded local cache there.
+Expected output: `release\KaraOps-0.5.0-Portable.exe`. Double-click it directly: **no installer**. The app creates `KaraOpsData\settings.json` alongside the EXE when folder choices are saved, and keeps its profile, Hunter history and bounded local cache there.
 
 Current Windows x64 build and runtime results are recorded in [docs/HUNTER_VERIFICATION_REPORT.md](docs/HUNTER_VERIFICATION_REPORT.md). The earlier skeleton baseline is preserved in [docs/VALIDATION.md](docs/VALIDATION.md). The portable EXE needs Windows plus the selected DFO source and ARENA2 folders; it does not need installed Node/npm.
 
@@ -50,7 +52,7 @@ Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
 npm.cmd run dev
 ```
 
-For repeatable Electron smoke tests after building, set `KARAOPS_TEST_ARENA2` to your actual ARENA2 directory and run `node tests/electron-smoke.mjs`. To test the portable EXE, also set `KARAOPS_TEST_NATIVE=1` and pass its absolute path. Native tests operate Windows folder dialogs and should run without other interaction with the desktop. Results and screenshots are written to `release/verification`. Portable tests temporarily enable a loopback debugging port; normal launches do not enable it.
+For v0.5 native desktop verification without remote debugging, run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/native-hunter.ps1 -ExecutablePath release/KaraOps-0.5.0-Portable.exe` after configuring the actual folders. Add `-World` to verify signed High Rock coordinates and its real map. This operates only KaraOps through Windows UI Automation; let it finish without other keyboard interaction. Results/screenshots go to `release/verification`. Earlier Playwright/CDP drivers are retained as historical v0.4 tooling and were not used for v0.5.
 
 ## Folder structure
 
@@ -75,7 +77,7 @@ docs/ROADMAP.md         Implementation milestones
 
 Open Dungeon Hunter, click **Validate data**, enter your actual effective level and manual center (or choose a town), then click **Scan**. The online default is DEX+MUDEX; alternative profiles are comparisons, not detected live settings. Radius is capped at 50 tiles, with the best 100 matches retained. X increases east; map Y increases south. Select a result to see its source-generated blocks and target markers. **Save target** creates a bookmark; **Record visit** stores your manually entered observation with a timestamp and input provenance. Neither marks a dungeon currently alive.
 
-Run `npm.cmd test`, `npm.cmd run test:hunter:local` (requires the local DFO checkout and ARENA2), and `node tests/hunter-electron.mjs` (after `npm.cmd run build`). Set `DFO_SOURCE_PATH` and `ARENA2_PATH` to override the local test defaults. Pass a portable EXE path to `hunter-electron.mjs` to test its embedded worker without Node/npm on the application's PATH.
+Run `npm.cmd test`, `npm.cmd run test:hunter:local`, `npm.cmd run test:geometry:local`, `node --test tests/navigation-local.mjs`, `npm.cmd run test:world:local`, and `node --test tests/world-host-local.mjs`. Integration checks need the selected source checkout and ARENA2. GUI suites run sequentially. The native portable driver removes Node/npm from the child app's PATH.
 
 The Castle Hawkwing regression at (766,88), effective level 30, DEX+MUDEX/classic selection is **25 resolved random Dragonlings before Elite expansion, 75 expanded Dragonlings**; all species total 59 before / 177 after expansion. Unresolved and deliberately excluded markers are separate counts. Earlier wording that called 75 the "base" population was incorrect.
 
@@ -87,4 +89,6 @@ Below the X-Ray, use **Calculate navigation** to analyze a species or choose a s
 
 Run `node --test tests/navigation-local.mjs` for real source-motor, action-chain and navigation checks. Run desktop/portable GUI suites sequentially. See [the navigation continuation checkpoint](docs/NAVIGATION_NEXT.md) for concrete remaining work and reproducible cases.
 
-Remaining broader Hunter work includes wider-world scanning, active world-data pack/quest-state parity and user-controlled live comparisons. Mechanism relationships are indexed; the full puzzle-state/teleporter/mover solver and puzzle walkthrough remain unfinished. 3D and live overlays remain disabled. The one-metre display raster itself is not a traversal proof: navigation uses a separate source collider/navmesh and actual motor replay. Real dungeon analyses are incomplete, so **Not Possible is unavailable**; the separate complete directed-graph proof tests do not establish completeness for real dungeons.
+Choose **Jump search center to province**, retain a radius up to 50, select the province filter or any theatre, then Scan. Purity retention is chosen before scanning; sorting reorders the retained list. Wider-world towns are not indexed for nearest-town directions, so no Bay town is misleadingly recommended across the continent. The ten required ARENA2 files are the previous six data files plus ART_PAL.COL, MAP.PAL, TMAP00I0.IMG and TAMRIEL2.IMG. All remain external/read-only.
+
+Remaining broader Hunter work includes exhaustive scheduling, active browser pack/quest/day-state parity and optional user-controlled field comparisons. Ordinary generated spawns are the scope; static MAPS dungeons, countryside lairs, abyss/zone halls and special instances are not separate search families here. Mechanism relationships are indexed; the full puzzle-state/teleporter/mover solver remains unfinished. 3D and live overlays stay disabled. Real navigation analyses remain incomplete, so **Not Possible is unavailable** for real dungeons.

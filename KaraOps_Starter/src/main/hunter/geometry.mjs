@@ -1,6 +1,7 @@
 import { populationFor } from './engine.mjs'
 export async function assembleGeometry(game, spec, capture = null) {
   const { px, py, request } = spec
+  await game.world.prepare({...request,px,py,radius:0},undefined,game.cacheDir)
   if (game.index.has(`${px},${py}`) || !game.modules.spawn.spawnsDungeon(1,px,py) || !game.gate.spawnAt(px,py,{clocks:false})) throw new Error('DUNGEON_NO_LONGER_ELIGIBLE: rescan before opening this map')
   const built = game.modules.size.dungeonLocationFor(game.clone(px,py), { online: true })
   const dungeon = game.modules.layout.layoutDungeon(built, game.blockReader, game.getModel)

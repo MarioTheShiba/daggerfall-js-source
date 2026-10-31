@@ -10,7 +10,8 @@ try {
   const game = await openGame(workerData.settings, value => parentPort.postMessage({ kind: 'progress', value }))
   const { mapSpec, request, dataDir } = workerData
   if (mapSpec && (game.provenance.sourceFingerprint !== mapSpec.expected.sourceFingerprint || JSON.stringify(game.provenance.assetHashes) !== JSON.stringify(mapSpec.expected.assetHashes) || game.provenance.worldData.fingerprint !== mapSpec.expected.worldData?.fingerprint)) throw new Error('INPUT_VERSION_MISMATCH: source, world-data packs or ARENA2 changed after scan. Rescan before showing geometry.')
-  const compute = () => mapSpec?.navigation ? navigate(game,mapSpec,mapSpec.navigation,value=>parentPort.postMessage({kind:'progress',value})) : mapSpec ? assembleGeometry(game,mapSpec) : scan(game,request,value=>parentPort.postMessage({kind:'progress',value}))
+  game.cacheDir=dataDir
+  const compute = () => mapSpec?.navigation ? navigate(game,mapSpec,mapSpec.navigation,value=>parentPort.postMessage({kind:'progress',value})) : mapSpec ? assembleGeometry(game,mapSpec) : scan(game,request,value=>parentPort.postMessage({kind:'progress',value}),dataDir)
   const value = mapSpec || request ? await cached(join(dataDir,'hunter-cache'),cacheKey(game.provenance,mapSpec ?? request,mapSpec?.navigation?'navigation':mapSpec?'geometry':'scan'),compute) : game.catalog
   parentPort.postMessage({ kind: 'complete', value })
 } catch (error) {

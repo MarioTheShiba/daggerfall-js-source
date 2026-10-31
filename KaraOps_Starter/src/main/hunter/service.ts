@@ -17,11 +17,13 @@ export function validateNavigation(value:unknown): NavigationRequest {
 export function validateRequest(value: unknown): ScanRequest {
   if (!value || typeof value !== 'object') throw new Error('Invalid scan request')
   const v = value as Record<string, unknown>
-  for (const [key, min, max] of [['px', 0, 999], ['py', 0, 499], ['radius', 0, 50], ['species', 0, 1023], ['level', 1, 1000], ['minTargets', 1, 1000], ['region', -1, 61]] as const) {
+  for (const [key, min, max] of [['px', -8191, 8191], ['py', -8191, 8191], ['radius', 0, 50], ['species', 0, 1023], ['level', 1, 1000], ['minTargets', 1, 1000], ['region', -1, 70]] as const) {
     if (!Number.isInteger(v[key]) || (v[key] as number) < min || (v[key] as number) > max) throw new Error(`${key}: expected integer ${min}–${max}`)
   }
   if (!['vanilla', 'dex', 'dex-mudex'].includes(String(v.profile)) || typeof v.eliteOnly !== 'boolean' || typeof v.alternate !== 'boolean') throw new Error('Invalid encounter profile')
-  return { px: v.px, py: v.py, radius: v.radius, species: v.species, level: v.level, minTargets: v.minTargets, region: v.region, profile: v.profile, eliteOnly: v.eliteOnly, alternate: v.alternate } as ScanRequest
+  if(v.theatre!==undefined&&(!Number.isInteger(v.theatre)||(v.theatre as number)<-1||(v.theatre as number)>9))throw new Error('Invalid theatre')
+  if(v.rankBy!==undefined&&!['targets','purity'].includes(String(v.rankBy)))throw new Error('Invalid ranking')
+  return { px: v.px, py: v.py, radius: v.radius, species: v.species, level: v.level, minTargets: v.minTargets, region: v.region, profile: v.profile, eliteOnly: v.eliteOnly, alternate: v.alternate,...(v.theatre!==undefined?{theatre:v.theatre}:{}),...(v.rankBy!==undefined?{rankBy:v.rankBy}:{}) } as ScanRequest
 }
 
 export class HunterService {
@@ -81,12 +83,12 @@ export class HunterService {
     const id = this.current.id + 1
     this.current = { id, state: 'running', catalog: this.current.catalog, ...(mapSpec ? { scan: this.current.scan } : {}), ...(mapSpec?.navigation ? {geometry:this.current.geometry}:{}), progress: { phase: 'Validating files and loading algorithms' } }
     if (request) this.saveHistory({ ...this.history(), lastRequest: request })
-    const worker = new Worker(this.workerPath, { workerData: { settings, request, mapSpec, dataDir: this.dataDir }, resourceLimits: { maxOldGenerationSizeMb: mapSpec?.navigation?1536:1024 } })
+    const worker = new Worker(this.workerPath, { workerData: { settings, request, mapSpec, dataDir: this.dataDir }, resourceLimits: { maxOldGenerationSizeMb:1536 } })
     this.worker = worker
     this.timer = setTimeout(() => {
       if (this.worker !== worker) return
-      void this.cancel().then(() => { if (this.current.id === id) this.current = { ...this.current, state: 'analysis_error', error: 'Worker exceeded 180-second initialization/scan budget. Reachability remains unknown.' } })
-    }, 180000)
+      void this.cancel().then(() => { if (this.current.id === id) this.current = { ...this.current, state: 'analysis_error', error: 'Worker exceeded 360-second initialization/road/scan budget. Coverage and reachability remain unverified.' } })
+    }, 360000)
     const finish = (): void => { if (this.timer) clearTimeout(this.timer); this.worker = null; void worker.terminate() }
     worker.on('message', message => {
       if (this.worker !== worker) return

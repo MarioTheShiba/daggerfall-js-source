@@ -1,5 +1,7 @@
 # Navigation continuation checkpoint — v0.4.0
 
+Preserved in v0.5: the Hunter now accepts Tamriel world coordinates and selected generated world results reuse this same bounded navigation engine. Read the current v0.5 verification report first. The old Playwright/CDP directions below describe historical v0.4 tooling; v0.5 desktop verification uses `tests/native-hunter.ps1` without remote debugging. General puzzle/navigation limits below remain unchanged.
+
 The current release is a validated **walking increment**, not a completed Navigation & Feasibility milestone. Read HUNTER_IMPLEMENTATION_AUDIT.md and HUNTER_VERIFICATION_REPORT.md first. Preserve Hunter population/cache/source checks and secure portable packaging. Do not edit the parent DFO checkout or original ARENA2.
 
 ## Reproduce the current baseline

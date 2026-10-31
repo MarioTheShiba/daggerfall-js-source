@@ -16,7 +16,7 @@ const navItems: NavItem[] = [
 ]
 
 const modules: { page: ModulePage; title: string; description: string; icon: string; phase: string }[] = [
-  { page: 'dungeons', title: 'Dungeon Hunter', description: 'Find predicted enemies in source-generated online dungeons.', icon: '⌖', phase: 'STAGE 1 / BAY' },
+  { page: 'dungeons', title: 'Dungeon Hunter', description: 'Find predicted enemies in bounded searches across Tamriel theatres.', icon: '⌖', phase: 'TAMRIEL / BOUNDED' },
   { page: 'dragons', title: 'Dragon Radar', description: 'Reserved for integration of the existing proven locator.', icon: '♜', phase: 'NOT CONNECTED' },
   { page: 'map', title: 'World Atlas', description: 'A shared map for candidate locations, towns, and routes.', icon: '◇', phase: 'PLANNED' }
 ]
@@ -91,10 +91,10 @@ function App(): JSX.Element {
         {page === 'dashboard' && <>
           <div className="eyebrow">THE INTELLIGENCE SUITE</div>
           <h1>Your command center,<br/><em>built for Tamriel.</em></h1>
-          <p className="lead">KaraOps is a standalone, portable companion for Daggerfall Online. Dungeon Hunter predicts base enemy populations from your local source and game data. Advanced maps and walkthroughs are coming later.</p>
+          <p className="lead">KaraOps is a standalone, portable companion for Daggerfall Online. Search generated dungeons across Tamriel using your local source and game data, with floor maps and bounded walking analysis. Live availability is unverified.</p>
           <div className="stat-strip">
-            <div><span>APPLICATION</span><strong>{info?.version ?? '0.2.0'}</strong><small>Hunter / Stage 1 slice</small></div>
-            <div><span>HUNTER</span><strong>BAY</strong><small>Base populations</small></div>
+            <div><span>APPLICATION</span><strong>{info?.version ?? '0.5.0'}</strong><small>Hunter / source-derived</small></div>
+            <div><span>HUNTER</span><strong>TAMRIEL</strong><small>Bounded coverage</small></div>
             <div><span>GAME CONNECTION</span><strong>OFF</strong><small>Read-only design</small></div>
           </div>
           <div className="section-head"><h2>Modules</h2><span>Choose a destination</span></div>

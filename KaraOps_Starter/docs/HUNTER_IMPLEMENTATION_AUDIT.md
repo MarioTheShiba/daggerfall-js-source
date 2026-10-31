@@ -1,4 +1,45 @@
-# Hunter implementation audit — v0.4.0 navigation increment
+# Hunter implementation audit — v0.5.0 Tamriel discovery
+
+Date: 2026-10-31. The existing project is extended; v0.4 maps, source population scenarios, cache, settings and bounded navigation remain intact. No game source/assets, client, packets or gameplay were modified.
+
+## Source audit
+
+The latest **local** checkout is `8d11c0f075` (`v.4`). Compared with the preceding v0.4 baseline checkout `ae0e0ab9fb`, there are no differences under game `src/` or `vendor/`; the newer commit adds KaraOps and an unrelated spawn log. Whole-source fingerprint remains `88cf9bbac96e0efb3c1f30948e8505658a965d2c2247c1d2e7f55d7a42251804`. No fetch/pull or live-game connection was made. This is a local-checkout audit, not a claim about a remote repository's latest state.
+
+Audited world contracts now additionally pin worldGrid/worldLanes, trace/fit/relief/ground, province geography/biomes, country/lair/capital/Arena places, regional roads/worker/paths, the actual spawn/Tamriel host integration, Cyrodiil's zone, and filed-land rules/data. Current source landEdits.json contains no edits. Changed core contracts still stop prediction; whole-source, local pack and all ten required ARENA2 file fingerprints remain part of every job/cache key.
+
+## Source composition and scope
+
+- `world.mjs` composes real source functions and exposes ten theatres from worldGrid. Source `preloadTamrielTrace` reads the user's TMAP00I0.IMG/TAMRIEL2.IMG, ART_PAL.COL/MAP.PAL and source relief; source fit uses the host's filed climate/height over the repaired Bay. Fit is `{ox:589, oy:883.5, ppu:15.5}`, trace land cells 26,599. Province presets come from the traced geography and are search centres, not invented towns or dungeon locations.
+- Engine coordinates extend to integer -8191..8191 on each axis, matching the pinned world grid. Source spawnedMapId/worldLaneMapId provide unsigned identities beyond the Bay; no `y*1000+x` shortcut aliases negative/out-of-Bay coordinates. Bay identities and 4,218 spawn templates remain unchanged.
+- Source capitals and Arena places reserve pixels first, then source countryside and planned lairs. Their templates/counts and density basis follow actual TamrielPlaces host rules. An independent host test exposed two misses when raw rather than repaired/filed density was used; the adapter was corrected. The final test compares 8,542 beyond-Bay samples and exact density basis with no mismatches, including the two regression pixels (3236,1535) and (3093,1396).
+- `createSpawnGroundPlace` applies actual climate, dry plateau, Ether Sea, Cyrodiil mask and reserved-place exclusions. Spawn roll/keep/Elite predicates are applied explicitly. Live clocks are intentionally not evaluated; eligibility is labeled `eligible_under_offline_scenario`, availability always unknown. Runtime Hollows, quest/pack/day state are not inferred.
+- Source regional road preparation uses actual country/lair rollSpec, Arena towns, capital gates/obstacles, Bay joins/held pixels and named Cyrodiil trunks. Every source road region whose **apron** intersects the requested circle is prepared, not just the centre's region. Source roadsWorkerState.steps builds its own 1000x500 grids incrementally; packed source paths and places are installed before eligibility. Missing/failed road generation is an explicit error, never silently considered path-free.
+- The source Cyrodiil mask excludes ordinary generated spawns in the Imperial Province. Zone halls, countryside lairs, static/quest/abyss/special-instance dungeons are separate families and are not represented as generated Elite results. The search scope is the `spawnedDungeons` family across supported source theatres, not every dungeon family in the game.
+
+## Integration and correctness
+
+Result metadata adds theatre/province, source region, map/template identity, Elite/eligibility status, Dragonling expanded count, all-species expanded count and resolved-population percentage. Existing base/expanded/fixed/random/unresolved/excluded counts remain separate. Purity denominator excludes unresolved markers and the UI says so.
+
+Province filters and source centre presets work with manual signed coordinates. The retained top 100 can be ranked by selected species count or Dragonling purity; the current retained list can be sorted by count/purity/province/distance. Bay-town centring resets the province filter, and wider-world results do not falsely recommend a Bay town as nearest. Negative entry uses a text draft so a lone minus sign is preserved; invalid drafts cannot start a scan. Native testing reproduced the earlier number-input minus-to-zero problem and verifies the corrected saved signed request.
+
+Each result records bounded-circle coverage: visited pixels by theatre, eligible/populations simulated/errors, matches versus retained results, truncation, road regions and completeness **under the query filters**. `exhaustiveWorld` is always false. Coordinates outside that result's circle remain unexplored by it; there is no aggregate exhaustive-coverage or world-best claim. No automatic world-wide sweep or Jackpot Scanner was added.
+
+Maps and navigation reuse the existing source layout/collision engine for selected world IDs. Geometry independently prepares required world road context before admission. A source-verified High Rock sample at (687,-216), map 1201283759, reconstructs 8 blocks and 153 expanded enemies. Its tested walking objective remains Unverified under the existing incomplete model; v0.5 does not loosen navigation correctness to increase coverage.
+
+## Performance, caching and verification boundaries
+
+All tracing/roads/scans/layout/navigation run in the cancellable backend worker, not the renderer. Radius <=50, retained results <=100, diagnostic list bounded, 1,536MiB worker old-generation limit, 240-second road preparation cap, 300-second scan budget and 360-second worker watchdog. Regional source generators yield between steps; terminating the worker cancels expensive initialization too. No enormous world grid is allocated on the UI thread.
+
+Road-region cache joins existing content-addressed checksummed/atomic storage (12 entries/64MB total, 16MB maximum entry). Keys include source/assets/packs, adapter code, region/scenario or full query/capabilities. The terrain-density fix automatically invalidated earlier region caches. Only derived data are stored locally; source modules and user assets remain external/read-only and original BSA/model buffers are not packaged.
+
+Desktop verification uses Windows UI Automation and the accessibility flag `--force-renderer-accessibility=complete`, without any remote-debugging connection. Existing Playwright/CDP scripts are retained as historical tooling and were not invoked for v0.5. No game process/session/memory is read. See HUNTER_VERIFICATION_REPORT.md for exact tests, samples and executable hash.
+
+Remaining limits: offline default source scenario rather than active browser mods/land/quest/day state; no live lifecycle validation; no whole-world exhaustive ranking; nearest towns outside the Bay not indexed; v0.4 mover/teleport/puzzle/advanced-movement navigation gaps remain. Full puzzle walkthrough, live overlays, Dragon Radar and 3D stay disabled.
+
+---
+
+# Historical v0.4.0 navigation audit
 
 The full Navigation & Feasibility milestone remains incomplete. This release finishes a working, bounded walking slice while preserving v0.3. No DFO source or ARENA2 assets are modified.
 

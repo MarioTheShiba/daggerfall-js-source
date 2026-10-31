@@ -1,13 +1,15 @@
 export type Feasibility = 'reachable' | 'reachable_with_conditions' | 'partially_reachable' | 'proven_unreachable' | 'unknown' | 'analysis_error'
 export interface ScanRequest {
+  theatre?:number; rankBy?:'targets'|'purity'
   px: number; py: number; radius: number; species: number; level: number; region: number; minTargets: number
   eliteOnly: boolean; alternate: boolean; profile: 'vanilla' | 'dex' | 'dex-mudex'
 }
 export interface Provenance { schema: number; sourceFingerprint: string; assetHashes: Record<string, string>; templates: number; scope: string; warnings: string[]; worldData?: { fingerprint: string; diagnostic: string; rdbOverrides: string[]; files: { path: string; sha256: string; entries: number; rdb: number }[] } }
-export interface HunterCatalog { provenance: Provenance; towns: { name: string; px: number; py: number; region: number }[]; species: { id: number; name: string }[]; regions: { id: number; name: string }[] }
+export interface HunterCatalog { provenance: Provenance; theatres:{id:number;key:string;name:string;px:number;py:number;bounds:{x0:number;y0:number;x1:number;y1:number}|null;spawnPolicy:string}[]; towns: { name: string; px: number; py: number; region: number }[]; species: { id: number; name: string }[]; regions: { id: number; name: string }[] }
 export interface HunterProgress { phase: string; pixels?: number; hashCandidates?: number; eligible?: number; simulated?: number; errors?: number; elapsedMs?: number }
 export interface EnemyMarker { x: number; y: number; z: number; mobileType: number; fixed: boolean; blockIndex: number; loadID: number; copies: number }
 export interface HunterResult {
+  theatre:number;province:string;region:number;eligibility:string;verification:string;dragonlings:number;totalEnemies:number;dragonlingPercentage:number
   mapId: number; templateId: number; name: string; px: number; py: number; elite: boolean; type: number; size: string; curated: number | null
   count: number; fixed: number; random: number; copies: number; counts: Record<string, number>; distance: number; targets: EnemyMarker[]
   population: { base: number; expanded: number; targetBase: number; targetExpanded: number; unresolved: number; excluded: number; markerCandidates: number }
@@ -17,7 +19,7 @@ export interface HunterResult {
   populationSeed: number; tableSeed: { unknown2: number; region: number }; spawnRoll: number; gates: string[]
   reachability: Feasibility; liveAvailability: 'unknown'
 }
-export interface HunterScan { request: ScanRequest; provenance: Provenance; stats: HunterProgress; results: HunterResult[]; diagnostics: { px?: number; py?: number; status: Feasibility; message: string }[]; cache?: { hit: boolean; key: string } }
+export interface HunterScan { request: ScanRequest; provenance: Provenance; stats: HunterProgress; results: HunterResult[]; coverage?:{kind:string;center:{px:number;py:number};radius:number;visitedPixels:number;visitedByTheatre:Record<string,number>;eligible:number;populationsExamined:number;failed:number;matchingResults:number;retained:number;truncated:boolean;completeWithinQuery:boolean;exhaustiveWorld:boolean;roadRegions:string[];note:string}; diagnostics: { px?: number; py?: number; status: Feasibility; message: string }[]; cache?: { hit: boolean; key: string } }
 export interface HunterGeometry {
   mapId: number; name: string; px: number; py: number; cell: number; request: ScanRequest; provenance: Provenance
   bounds: { x0: number; z0: number; x1: number; z1: number }

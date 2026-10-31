@@ -1,4 +1,81 @@
-# Hunter verification report — v0.4.0 navigation increment
+# Hunter verification report — v0.5.0 Tamriel-Wide Dungeon Hunter
+
+Date: 2026-10-31, Europe/Bucharest. Existing v0.4 functionality preserved; bounded generated-spawn discovery now supports all ten source theatres. **This is not an exhaustive World Jackpot Scanner and does not establish live availability.**
+
+## Current executable
+
+`C:\Users\mario\Documents\GitHub\daggerfall-js-source\KaraOps_Starter\release\KaraOps-0.5.0-Portable.exe`
+
+- Windows x64 portable EXE only, unsigned; **110,680,947 bytes**.
+- SHA-256: `AB0CF07A245BF9EBF2C3AD50ABC6D5FFB7B313906C1C9AD5CD1732389111A1AC`.
+- Local DFO HEAD `8d11c0f075`; game src/vendor unchanged against v0.4 checkout. Source fingerprint still `88cf9bbac96e0efb3c1f30948e8505658a965d2c2247c1d2e7f55d7a42251804`; world pack inventory fingerprint remains `6d04c8e3bae75ff395d9ffb540cda3671b0c9f8cd573b7c0e53c9c9eed767f8b`.
+- Original six data hashes unchanged. Four additional original files (ART_PAL.COL, MAP.PAL, TMAP00I0.IMG, TAMRIEL2.IMG) are read/hashed externally for source geography. No assets are embedded or edited, no installer or external Node/npm runtime requirement.
+
+## Automated checks
+
+| Command | Result |
+| --- | --- |
+| `npm.cmd test` | **20/20 passed**; prior unit/proof/cache/security regressions plus signed-coordinate/theatre/purity validation at both boundaries. |
+| `npm.cmd run test:hunter:local` | **7/7 passed**; all previous Bay/source-population checks retained. |
+| `npm.cmd run test:geometry:local` | **9/9 passed**; previous real floors/transforms/marker/version/cache checks retained. |
+| `node --test tests/navigation-local.mjs` | **9/9 passed**; previous source motor/action/partial/unknown/return regressions retained. |
+| `npm.cmd run test:world:local` | **15/15 passed**; ten real theatre queries, keys/lanes, unsigned map IDs, no coordinate aliases, deterministic source gates, populations/percentages, province filters, normal/Elite counts, actual top-100 truncation, purity ranking, cache inputs, cancellation and world geometry/navigation integration. The truncation case was additionally rerun with a real level-1 species-0 query exceeding 100 matches. |
+| `node --test tests/world-host-local.mjs` | **1/1 passed**; 8,542 reserved-place comparisons against actual TamrielPlaces host and equal density basis. Earlier raw-density mismatches at two pixels were corrected rather than waived. |
+| `npm.cmd run typecheck` / `npm.cmd run portable` | Passed; final artifact hash above. |
+
+Total: **61 automated tests passed**, plus native desktop checks. A first parallel navigation run was interrupted; the complete sequential final navigation rerun passed 9/9. Node prints the source module's experimental localStorage warning; no browser storage is needed by these tests.
+
+## Native application verification
+
+The final EXE, matching the SHA above, passed Windows UI Automation checks without remote debugging:
+
+- Original release folder: real High Rock scan with saved request **(689,-210)**, level 30 and Elite-only true; real world floor map; unchanged actual folder settings. After restart, signed history coordinates were read back from the controls before running the verified Hawkwing population/map/navigation flow.
+- Relocated to `%TEMP%\KaraOps-v0.5-Tamriel-Validation`: EXE copied without app resources/runtime folders. The two existing folder paths were seeded into a fresh adjacent settings JSON; no profile, history or cache was copied. Real negative-coordinate discovery and map reconstruction passed with Node/npm absent from the child PATH. The first launch correctly had no previous search history.
+- Relocated EXE restart: saved signed coordinates were verified directly in the controls, folder settings stayed byte-for-byte unchanged, and Hawkwing scanning, real floor mapping and bounded navigation passed again. Original and relocated executable hashes match the final SHA.
+- Native drivers passed actual UI interactions and compared saved requests/settings on disk. The accessibility flag enables Windows UI Automation only; no remote-debugging port was requested. Runtime snapshots found **no TCP listener and no external TCP connection** owned by KaraOps.
+
+Native evidence is SHA-tagged in `release/verification/native-hunter.jsonl`, with `native-world-results.png`, `native-world-map.png`, corresponding Bay images and accessible tree snapshots. The earlier intermediate EXE's records are retained but excluded from final verification.
+
+## Sampled coverage and real predictions
+
+All rows are radius-20 circles: **1,257 pixels per query**, manual effective level 30, classic DEX+MUDEX, Elite only, species 34. Across the ten query circles, 12,570 pixel visits, 574 eligible populations simulated, zero analysis errors and 24 Dragonling-bearing matches. Direct spawn-host gate comparison covers 10,896 theatre-matching sample coordinates; all retained sample populations independently match source layout/enemy collection. These counts describe the named circles only, not province-wide or world-wide completeness.
+
+| Theatre | Query centre | Eligible Elite populations | Dragonling-bearing matches |
+| --- | --- | ---: | ---: |
+| Iliac Bay | 780,100 | 91 | 8 |
+| High Rock | 689,-210 | 47 | 1 |
+| Hammerfell | 829,503 | 59 | 3 |
+| Skyrim | 1836,-39 | 69 | 1 |
+| Morrowind | 3138,302 | 35 | 1 |
+| Sumurset Isle (source spelling) | 395,1542 | 62 | 6 |
+| Valenwood | 1449,1356 | 72 | 2 |
+| Elsweyr | 2022,1402 | 69 | 1 |
+| Black Marsh | 3076,1433 | 70 | 1 |
+| Imperial Province | 2100,999 | 0 | 0, excluded by actual Cyrodiil zone law |
+
+Example predictions, **not live censuses or global bests**: High Rock (687,-216), map 1201283759, 30 Dragonlings /153 enemies (19.61%); Sumurset (413,1545), map 1258971549, 138/285 (48.42%); Black Marsh (3069,1416), map 1254763517, 84/96 (87.5%). These are Elite-expanded counts. Templates and complete per-sample source evidence are in `release/verification/world-parity.json`.
+
+Hawkwing (766,88) remains **25 random base /75 expanded Dragonlings**, all species **59/177**, zero unresolved/excluded. Existing navigation still validates 8/25 base objectives with its declared walking/door/Open profile; remaining objectives and the tour return stay Unverified. Single enemy:87 still validates its independent conditional return.
+
+World-map integration reconstructs High Rock (687,-216): 8 blocks, 384 model rows, 2,588 floor triangles, 12 storeys/9 map sheets, 51 base/153 expanded enemies. The sampled walking objective is Unverified; no success or impossibility is fabricated. The inherited normal-preserving automap adaptation remains explicit.
+
+## Performance and coverage limits
+
+Source trace: 26,599 picture land cells; fitted origin (589,883.5), scale 15.5. Regional roads are built before eligibility for every apron touching the circle. Cold sampled road+scan jobs took roughly 8–54s while packaging was running; pure Bay scans remained under a second. The full corrected world suite took about 176s under that load. Source/asset hashing and world initialization still run before a cache hit; cache speed is not presented as zero-cost validation.
+
+No whole-world search or total population census was performed. `completeWithinQuery` means that filtered circle completed without analysis errors; `exhaustiveWorld` is always false. Retained results are capped at 100, with total matches and truncation separately shown. The mixed normal/Elite radius-50 Dragonling purity test simulated 2,016 eligible populations and found 73 matches; the level-1 species-0 query found **1,084 matches, retained 100 and explicitly reported truncation**. All coordinates outside a result's circle remain unexplored **by that result**. There is no misleading union-of-circles or whole-province claim.
+
+Runtime assumptions: fresh static source layout, default traced geography/relief and source place/road settings. Live TTL/respawn/clear state, active browser world-data/land edits, quest/day state and special occupied instances are not observed. Cyrodiil zone halls, static dungeons, countryside lairs and abyss/special families are not separate search targets. Wider-world nearest towns are left unknown rather than incorrectly using Bay towns. Advanced puzzle-state navigation remains incomplete as documented in the historical v0.4 report.
+
+## Evidence and remaining scope
+
+Current evidence: `world-parity.json`, `world-place-host.json`, `world-focused.json`, retained Hunter/geometry/navigation parity files, and `native-hunter.jsonl` plus native screenshots/tree snapshots under `release/verification`. Earlier intermediate native runs exposed the minus-sign input bug and test-driver selector/focus issues; only records matching the final executable SHA count as final verification. Input drafting was fixed and native tests assert the actual persisted signed request.
+
+Game source and ARENA2 remain read-only; parent src/vendor diff is empty. An unrelated parent spawn-log change is outside this work and was left untouched. No live game session, process memory, packet traffic, client modification or remote debugging was used. No installer, live overlay, 3D renderer, gameplay automation or exhaustive Jackpot Scanner was added.
+
+---
+
+# Historical v0.4.0 navigation verification
 
 Date: 2026-10-31, Europe/Bucharest. **Working bounded walking/navigation increment; the full milestone remains incomplete.** Existing v0.3 Hunter, source diagnostics, population parity, map, caching, settings and portable packaging are preserved. No 3D viewer, live overlay or gameplay automation was added.
 
