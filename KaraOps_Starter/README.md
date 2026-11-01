@@ -1,128 +1,75 @@
-# KaraOps v0.7 ? Navigation reliability and live-companion foundation
+# KaraOps v0.8 - Shattered Hour Orrery auto-solver patch
 
-The large multi-floor navigation failure is reproduced and repaired. The 2D X-Ray survives route calculation, errors and cancellation; retry/reopen works without another world scan. A bounded coarser proposal bake can recover capsule-motor-validated routes in layouts that previously exceeded the fixed grid budget. Missing paths remain Unverified, and the source's ordinary fine grid is retained where it fits.
+A separate, non-destructive patch for your **KaraOps_Starter** Electron + React project from `MarioTheShiba/daggerfall-js-source`. Adds an Orrery Solver navigation tab, an opt-in Chrome DevTools Protocol connection, and local puzzle reconstruction once a new `.../room/sd:<slot>.<owner>` WebSocket URL is observed.
 
-An explicitly enabled loopback receiver, strict map/source/assets/layout checks, telemetry minimap wiring, floor following and a separate read-only publisher SDK are implemented. **The game-side producer is not installed or runtime-validated. Aurum ESP and live GPS remain visibly disabled.** The user reported developer approval; this is documented without modifying DFO source, reading memory, using debugging ports, observing packets or automating gameplay.
+## Does this run by itself?
+No. This is a **source patch**, not a standalone EXE. Build the copied KaraOps source after applying it. It does not update DFO, your original KaraOps source directory, the frozen v0.6 binary, or your saved `KaraOpsData`.
 
-See [v0.7 verification and limits](docs/V07_VERIFICATION.md) and the [separate upstream integration proposal](integration/DFO_UPSTREAM_PROPOSAL.md). The next step is a developer-integrated actual-data sampler/manifest and real-game coordinate, teleport and viewport validation before HUD/GPS work. Exhaustive Tamriel scanning is deferred under the user's revised priorities.
+## Apply on Windows
 
-The frozen v0.6 EXE remains unchanged. Existing settings, observations and captures are preserved. The receiver is off on every startup; it requires a matching reconstructed map, the exact approved game origin, explicit opt-in and a private one-session pairing token. Its tracking state means received identity-matched telemetry, not certified game parity.
-
-Historical v0.6 documentation follows.
-
----
-
-# KaraOps v0.6 ? Universal Jackpot & Aurum analysis
-
-The portable application now captures every analyzed population in a bounded query and ranks saved results by species, source-defined family, purity, total population, custom family weights or Legendary opportunity. Existing discovery, 2D maps, navigation, settings and observations are preserved.
-
-Open **Dungeon Hunter ? Universal Jackpot** after **Validate data**. Set the normal Hunter circle and effective level, then **Capture all populations**. To reuse old retained scan entries, choose **Import retained legacy cache** after validating data, before creating new calculation-cache entries. Compatible, checksummed old scans are migrated without world discovery; missing loot metadata stays explicitly Unverified. A minimum total population defaults to 20. **Rerank saved capture** performs no discovery or geometry work. Combine compatible saved circles to deduplicate map IDs across explored regions; mismatched source/assets/level/scenario are excluded. **Reuse current Hunter results** imports the retained ordinary Hunter rows without claiming that discarded populations were recovered. Open a captured dungeon in the existing inspector and rebuild its 2D X-Ray for real enemy coordinates.
-
-**Legendary scores are reference-roll opportunities, not expected drops per kill, dungeon or hour.** The selector uses source family weights and exact conditional selection probabilities for a stated compatible item that has already rolled Legendary. Real item counts, template mix, room terms, Renown/finders, champions and current loot state are unknown. King's Mark favors warriors specifically.
-
-**Analyze selected coffer** reconstructs original treasure ordering, seeded icons, original texture sizes, floor landing, doors and movers, then runs the pinned Aurum placement rules. **Verify coffer walking route** separately runs source capsule-motor navigation. Placement does not prove reachability. Exact coffer coordinates, pile/floor details, map marker and route points stay withheld until explicit DFO developer permission is recorded in the local approval setting. No permission has been established by this development session. Account status is an optional manual note only; rewards are 10 Aurum once per account/dungeon, at most 10 coffers per UTC day.
-
-Captures live in **KaraOpsData/jackpot-library** beside the EXE: checksummed schema 1, at most 24 queries, 23 MB payload each. The library refuses additional queries when full and never silently evicts exploration. Complete captures cannot be overwritten by partial reruns. Cached calculation files remain independently bounded. Exact positions are omitted from ordinary leaderboard exports. Native CSV/JSON export includes source/configuration and coverage provenance.
-
-Build: npm.cmd run portable. No installer or external Node/Git runtime. The coffer reference is pinned to fetched DFO commit 090f4288666940c9b47f08cf0264d9a40ad29097; source license accompanies the reference. The selected local checkout remains authoritative for population predictions, and reused coffer helpers must match the audited reference. Source/version mismatches stop prediction.
-
-See [current verification](docs/V06_VERIFICATION.md), [implementation audit](docs/HUNTER_IMPLEMENTATION_AUDIT.md) and [verification history](docs/HUNTER_VERIFICATION_REPORT.md). No exhaustive Tamriel champion or live dungeon availability is claimed. 3D, complete mechanism solving and gameplay automation remain unavailable.
-
-The following v0.5 documentation is retained as history.
-
----
-
-# KaraOps v0.5 — Tamriel-Wide Dungeon Hunter
-
-**Status:** Bounded generated-dungeon searches now cover the source Tamriel theatres, preserving v0.4 maps and navigation. Geography is traced from your original ARENA2 files; the adapter uses source fit, ground, reserved places, Cyrodiil exclusion and reconstructed road regions. Search by signed world coordinates or a province preset; inspect Dragonling count, total population, purity, map/template identity and explicit coverage. **No exhaustive world search or live availability is claimed.** See [the implementation audit](docs/HUNTER_IMPLEMENTATION_AUDIT.md) and [verification report](docs/HUNTER_VERIFICATION_REPORT.md).
-
-## What is implemented
-
-- Existing Electron + React + TypeScript shell with an implemented Dungeon Hunter page.
-- Bounded, cancellable two-pass scans in a Node-capable worker bundled with Electron; no external Node is required by the EXE.
-- All ten source theatres exposed, including the Iliac Bay and nine provinces. Cyrodiil's ordinary generated spawns are excluded by the game's zone law. Coordinates accept negative values within the source world grid; map IDs use the source world lanes without Bay aliases.
-- Province filtering/presets, Dragonling purity ranking and province/count/purity sorting. Every query reports visited pixels, theatre counts, eligible/simulated populations, errors, retained/truncated results and explicitly unexplored coverage. Radius remains bounded at 50 pixels; no World Jackpot Scanner is included.
-- Exact source online sizing/curated-block reconstruction and classic/alternate encounter simulation under explicit vanilla, DEX or DEX+MUDEX scenarios.
-- Ranked base target counts, nearest geometric town, coordinates, source/asset fingerprints, block overview and marker positions. The block overview is not a floor plan or traversal graph.
-- Local bookmarks and manual observations, separate from existing settings. Live availability remains unknown; reachability is evaluated only under explicit offline assumptions.
-- Actual 2D floor map: floor/species selection, pan, wheel/button zoom, entrance, doors at rest, stair/ramp joins, source enemy coordinates and click/list inspection. Authored normals and DFO seam repairs are retained; the source's normal-dropping automap index is explicitly diagnosed.
-- Local bounded content-addressed scan/geometry/navigation cache. Source, mod-pack and ARENA2 content is checked on each job before reuse; navigation keys include capabilities and declared door states. Budget-exhausted analysis is not cached.
-- Route to a marker, between markers, selected tour or selected species (base objectives); optional independently validated return. Multi-target ordering is a nearest-next heuristic, never claimed globally shortest. Configure ordinary door opening, declared Open-spell holder level and maximum drop. Manually declaring ordinary-door states recalculates immediately. Unknown live state is not inferred.
-- Native folder picker for ARENA2 and a local DFO source checkout.
-- Settings saved as JSON; Windows portable build keeps them in `KaraOpsData` **next to** the `.exe`.
-- Narrow Electron preload bridge; no Node integration in the browser renderer; no automatic remote traffic.
-- Electron Builder configured for **portable Windows x64 EXE only**. No installer.
-
-## Build requirements (on your Windows PC)
-
-- Node.js 22.12+ or a compatible maintained LTS version. Node.js 24 LTS is a reasonable choice.
-- npm and Windows 10/11 x64.
-- Internet access for the initial `npm install` (downloads Electron and development tools).
-
-## Run in development
+1. Extract this ZIP somewhere outside the source repository.
+2. Ensure your clone of the GitHub fork contains the `KaraOps_Starter` directory.
+3. Open PowerShell in this extracted patch folder and run:
 
 ```powershell
-cd path\to\KaraOps_Starter
-npm install
-npm run dev
+node .\apply.mjs "C:\PATH\TO\daggerfall-js-source\KaraOps_Starter"
 ```
 
-After installing dependencies, run `npm test` for unit checks. Real-data parity tests and application smoke tests are separate commands described below.
+The script makes a **separate sibling** directory called `KaraOps_Starter_Orrery_v08`. It refuses to overwrite an existing directory. It does not change the input directory.
 
-## Produce a portable EXE
+4. Build the new project:
 
 ```powershell
-npm run portable
+cd "C:\PATH\TO\daggerfall-js-source\KaraOps_Starter_Orrery_v08"
+npm.cmd install
+npm.cmd test
+npm.cmd run portable
 ```
 
-Expected output: `release\KaraOps-0.5.0-Portable.exe`. Double-click it directly: **no installer**. The app creates `KaraOpsData\settings.json` alongside the EXE when folder choices are saved, and keeps its profile, Hunter history and bounded local cache there.
+5. The new portable EXE is in the copied project's `release` directory. Preserve your old EXE and its data. Use a separate testing directory until you are happy with the build.
 
-Current Windows x64 build and runtime results are recorded in [docs/HUNTER_VERIFICATION_REPORT.md](docs/HUNTER_VERIFICATION_REPORT.md). The earlier skeleton baseline is preserved in [docs/VALIDATION.md](docs/VALIDATION.md). The portable EXE needs Windows plus the selected DFO source and ARENA2 folders; it does not need installed Node/npm.
+## Make DFO expose the debugging endpoint
 
-On PowerShell systems that block `npm.ps1`, use `npm.cmd`. If your terminal sets `ELECTRON_RUN_AS_NODE`, clear that variable before launching the development app:
+The DFO desktop game's View menu has a `Toggle Developer Tools` option. That UI alone does **not** enable external program access; the official desktop-app docs say its Electron shell honors Chromium's `--remote-debugging-port` argument. Close DFO completely and start **the actual game EXE** with:
 
 ```powershell
-Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
-npm.cmd run dev
+& "C:\PATH\TO\DFO Online.exe" --remote-debugging-port=9222 --remote-debugging-address=127.0.0.1
 ```
 
-For v0.5 native desktop verification without remote debugging, run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/native-hunter.ps1 -ExecutablePath release/KaraOps-0.5.0-Portable.exe` after configuring the actual folders. Add `-World` to verify signed High Rock coordinates and its real map. This operates only KaraOps through Windows UI Automation; let it finish without other keyboard interaction. Results/screenshots go to `release/verification`. Earlier Playwright/CDP drivers are retained as historical v0.4 tooling and were not used for v0.5.
+Or add the two flags after the existing quotation mark in a separate Windows shortcut's Target field. The EXE path shown above is **just a placeholder**; keep your real installed location.
 
-## Folder structure
+Confirm the endpoint locally:
 
-```text
-src/main/index.ts       Electron window, settings persistence, limited IPC
-src/preload/index.ts    Secure renderer bridge
-src/shared/types.ts     Shared API and settings types
-src/renderer/           React interface and styling
-electron.vite.config.ts Electron/Vite bundling
-electron-builder.yml    Portable Windows build target
-docs/ROADMAP.md         Implementation milestones
+```powershell
+Invoke-RestMethod http://127.0.0.1:9222/json/list | Select-Object title,type,url
 ```
 
-## Scope and safety
+This should show a DFO page. If it fails, the port is not enabled, the game wasn't fully restarted, a launcher didn't pass the flags, or a local policy blocked it.
 
-- This app must remain a **separate companion**, not a patch to DFO's code or a game executable.
-- No WebSocket interception, replay, injection or game automation in v0.1.
-- Never bundle copyrighted ARENA2 game data, credentials, or account tokens.
-- Be mindful of the game's terms: read-only does not imply server permission.
+## Usage
 
-## Use Dungeon Hunter
+1. Launch rebuilt KaraOps. Open **Orrery Solver** from the sidebar.
+2. Keep debugging port `9222` and click **Connect to DFO**. This is deliberately opt-in each time; nothing attaches at KaraOps startup.
+3. **Then** enter the Shattered Hour through its Rift. The observer subscribes to `Network.webSocketCreated`, which is not replayed for WebSockets opened before you connected.
+4. KaraOps extracts only the public numeric slot ID from a `/room/sd:<slot>.<owner>` WebSocket URL, computes the six-clock puzzle, and shows the handle presses.
+5. Turn the clocks **manually**, marking completed groups after doing them in-game. Switch the fray budget to 36 if the Hollow has the Fraying omen.
 
-Open Dungeon Hunter, click **Validate data**, enter your actual effective level and manual center (or choose a town), then click **Scan**. The online default is DEX+MUDEX; alternative profiles are comparisons, not detected live settings. Radius is capped at 50 tiles, with the best 100 matches retained. X increases east; map Y increases south. Select a result to see its source-generated blocks and target markers. **Save target** creates a bookmark; **Record visit** stores your manually entered observation with a timestamp and input provenance. Neither marks a dungeon currently alive.
+Manual fallback: enter a slot ID or room ID in the page when no event is available.
 
-Run `npm.cmd test`, `npm.cmd run test:hunter:local`, `npm.cmd run test:geometry:local`, `node --test tests/navigation-local.mjs`, `npm.cmd run test:world:local`, and `node --test tests/world-host-local.mjs`. Integration checks need the selected source checkout and ARENA2. GUI suites run sequentially. The native portable driver removes Node/npm from the child app's PATH.
+## Scope and limitations
 
-The Castle Hawkwing regression at (766,88), effective level 30, DEX+MUDEX/classic selection is **25 resolved random Dragonlings before Elite expansion, 75 expanded Dragonlings**; all species total 59 before / 177 after expansion. Unresolved and deliberately excluded markers are separate counts. Earlier wording that called 75 the "base" population was incorrect.
+- Read-only: sends only CDP `Network.enable` (to subscribe to socket URL creation notifications). No gameplay commands, JS injection, memory scanning, frame capture, payload inspection, logging URLs, account tokens or credentials, or input automation.
+- Only attaches to a **DFO page target** exposed on `127.0.0.1` with the configured port; does not scan ports or attach to unrelated browser tabs.
+- The game may use a different room transport or reuse an existing socket in a future version; in that case no slot will be detected and manual mode remains available.
+- A slot regenerates the **fresh** puzzle; if someone turned stones before your arrival, this route may be wrong. The independent manual-calibration solver is still required for moved clocks.
+- The only observed CDP event is newly created WebSocket URLs, not current in-game clock state. It will not remove a stale slot display simply because you leave the dungeon.
+- **Security:** A Chromium remote-debugging port grants powerful access to the local game session to any *local* process that connects to it. Restrict it to loopback, use it only while needed, and restart DFO without those flags afterward. Do not open or forward the port to a LAN/the internet.
+- Source-level solver parity was checked against ten original HTML solver seeds. Observer TS type-check, syntax and static room parsing can be checked locally; real installed DFO attachment and native Windows build have **not** been tested here.
 
-Choose **Open 2D X-Ray** on a result. The floor selector uses DFO's derived storeys/sheets; wheel zoom keeps the cursor anchored and dragging pans. Coordinates remain in dungeon-local metres (+X east, +Z north, +Y up). Elite copies are off by default to reduce overlapping pins; enable them to inspect their computed source positions, or use the record list. Nothing is moved just to make a pin easier to see. A source-generated stair mark changes the displayed floor, not the game.
+## Files
 
-Run `npm.cmd run test:geometry:local` for real geometry/coordinate/automap parity cases in addition to the existing tests. The source contract is intentionally pinned to audited generator/geometry files; do not update signatures just to bypass a mismatch. Audit and rerun parity checks first.
-
-Below the X-Ray, use **Calculate navigation** to analyze a species or choose a single/selected/between-marker goal. Set only capabilities you actually intend to assume. The Open-spell holder level defaults to 0 (none), and maximum safe drop defaults to 0m. Results identify supported door interactions and independently checked returns; route steps and destination buttons focus the corresponding floor. A green trace is a motor-validated walking route under the displayed assumptions. Unverified targets have reasons and, where available, a red blocking frontier; no invented walkthrough is shown.
-
-Run `node --test tests/navigation-local.mjs` for real source-motor, action-chain and navigation checks. Run desktop/portable GUI suites sequentially. See [the navigation continuation checkpoint](docs/NAVIGATION_NEXT.md) for concrete remaining work and reproducible cases.
-
-Choose **Jump search center to province**, retain a radius up to 50, select the province filter or any theatre, then Scan. Purity retention is chosen before scanning; sorting reorders the retained list. Wider-world towns are not indexed for nearest-town directions, so no Bay town is misleadingly recommended across the continent. The ten required ARENA2 files are the previous six data files plus ART_PAL.COL, MAP.PAL, TMAP00I0.IMG and TAMRIEL2.IMG. All remain external/read-only.
-
-Remaining broader Hunter work includes exhaustive scheduling, active browser pack/quest/day-state parity and optional user-controlled field comparisons. Ordinary generated spawns are the scope; static MAPS dungeons, countryside lairs, abyss/zone halls and special instances are not separate search families here. Mechanism relationships are indexed; the full puzzle-state/teleporter/mover solver remains unfinished. 3D and live overlays stay disabled. Real navigation analyses remain incomplete, so **Not Possible is unavailable** for real dungeons.
+- `apply.mjs` - copies and patches `KaraOps_Starter` into a new sibling folder.
+- `files/src/main/orrery/observer.ts` - opt-in local Chrome DevTools URL observer.
+- `files/src/shared/orreryTypes.ts` - typed IPC contract.
+- `files/src/renderer/src/orrery/logic.ts` - deterministic Orrery generator and solver.
+- `files/src/renderer/src/orrery/Orrery.tsx` - KaraOps sidebar page and step-by-step guide.

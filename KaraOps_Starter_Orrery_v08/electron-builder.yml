@@ -1,0 +1,23 @@
+appId: dev.karaops.companion
+productName: KaraOps
+asar: true
+extraResources:
+  - from: src/main/hunter
+    to: hunter
+    filter:
+      - '*.mjs'
+      - 'aurum-source.json'
+      - 'DFO-LICENSE.txt'
+directories:
+  output: release
+files:
+  - out/**/*
+  - package.json
+win:
+  target:
+    - target: portable
+      arch:
+        - x64
+  artifactName: KaraOps-${version}-Portable.${ext}
+# No nsis installer, MSI, ZIP installer, or auto-updater targets.
+publish: null
