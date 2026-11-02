@@ -1,3 +1,5 @@
+Current v0.9 addition: [Orrery observation research and verification](V09_VERIFICATION.md). Optional CDP puzzle observation is implemented and source/fixture tested; actual game runtime remains unverified. Existing engine results and limitations below remain applicable.
+
 Current release addition (2026-11-02): [v0.8 Orrery verification](V08_VERIFICATION.md). All 105 retained automated tests passed, plus 10 new Orrery tests; packaged UI checks also passed. No game-runtime/live-detection claim. Historical records below are retained.
 
 # v0.7 verification report

@@ -1,3 +1,11 @@
+# KaraOps v0.9 — opt-in Orrery observation
+
+Adds a read-only port-9222 observer for Elite Breach seed, hall, active decree ranks and accepted clock state. Open **Orrery Solver → Optional DFO connection**, authorize/connect before entering or rejoining the room, then enable **Follow observed Elite puzzle**. You operate every game control manually.
+
+Abyss slot URL detection and all manual solvers remain available. Source mismatch, stale state and disconnects withhold automatic instructions. Actual DFO runtime validation is still pending: the local endpoint was unavailable during this session.
+
+Portable: release/KaraOps-0.9.0-Portable.exe. See [v0.9 research, usage and verification](docs/V09_VERIFICATION.md). The v0.8 record below is historical; its no-CDP limitation was superseded by the user’s explicit v0.9 authorization.
+
 # KaraOps v0.8 — Elite Breach Orrery
 
 Orrery Solver now supports **Elite Breach**, **Abyss Dungeon**, and seed-free manual gearing calibration. Generate the source-derived six clocks from breach seed + hall, or enter current hours to recalculate a moved puzzle. The compact run view names every handle, shows shortest forward/backward turns, tracks manual progress and checks depth-dependent fray limits.

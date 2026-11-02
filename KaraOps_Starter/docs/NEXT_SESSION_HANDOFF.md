@@ -1,3 +1,7 @@
+# Current update — v0.9 Orrery observation
+
+Read [V09_VERIFICATION.md](V09_VERIFICATION.md) first. The user authorized the existing opt-in CDP approach for puzzle observation. It is now implemented and source/fixture-tested, but the real local port-9222 probe could not connect. Actual game-runtime validation remains the next gate. No gameplay commands, game source edits or original asset changes were made. Preserve v0.6/v0.7/v0.8 binaries and user data. Previous handoff sections are historical.
+
 # Current milestone update — 2026-11-02
 
 v0.8 adds the offline Elite Breach/Abyss Orrery Solver in the existing KaraOps_Starter application. Read [V08_VERIFICATION.md](V08_VERIFICATION.md) and [ORRERY_SOURCE_BLOBS.json](ORRERY_SOURCE_BLOBS.json) first. Pure generation is pinned to current official source, with manual seed/hall/state entry and measured calibration. No CDP observer or automatic puzzle detection was integrated. The v0.7 telemetry receiver, Hunter and protected release/data files remain unchanged. The sibling Orrery project and staged files were inspected read-only.

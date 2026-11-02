@@ -1,3 +1,5 @@
+Current v0.9 addition: [Orrery observation research and verification](V09_VERIFICATION.md). Optional CDP puzzle observation is implemented and source/fixture tested; actual game runtime remains unverified. Existing engine results and limitations below remain applicable.
+
 Current addition (2026-11-02): [v0.8 Orrery audit and verification](V08_VERIFICATION.md). Adds an independent offline Elite Breach/Abyss solver to the existing application; Hunter, navigation, source fingerprints and telemetry remain unchanged. Historical sections below remain applicable to those engines.
 
 # v0.7 implementation audit
