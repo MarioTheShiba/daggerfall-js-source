@@ -1,3 +1,11 @@
+# Current milestone update — 2026-11-02
+
+v0.8 adds the offline Elite Breach/Abyss Orrery Solver in the existing KaraOps_Starter application. Read [V08_VERIFICATION.md](V08_VERIFICATION.md) and [ORRERY_SOURCE_BLOBS.json](ORRERY_SOURCE_BLOBS.json) first. Pure generation is pinned to current official source, with manual seed/hall/state entry and measured calibration. No CDP observer or automatic puzzle detection was integrated. The v0.7 telemetry receiver, Hunter and protected release/data files remain unchanged. The sibling Orrery project and staged files were inspected read-only.
+
+Next work should follow the user's chosen priority. For live Orrery state, first obtain an actual supported opt-in publisher and validate identity/freshness/accepted hours/fray against real gameplay. Keep packet/debugger extraction and gameplay automation excluded. Exhaustive Tamriel scanning remains deferred; the historical roadmap below is not active authorization to start it.
+
+---
+
 # Current priority update ? 2026-10-31
 
 The user superseded the exhaustive-scanning roadmap below. v0.7 now targets navigation reliability and a developer-authorized live companion. Exhaustive Tamriel scanning is deferred. Read docs/V07_VERIFICATION.md and integration/DFO_UPSTREAM_PROPOSAL.md first for the implemented navigation fix, opt-in receiver/SDK, actual verification and remaining producer/HUD/GPS blockers. Developer approval was reported by the user; no DFO source changes or game integration deployment were performed. Preserve the frozen v0.6 release described below.

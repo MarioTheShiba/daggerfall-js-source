@@ -1,3 +1,5 @@
+Current addition (2026-11-02): [v0.8 Orrery audit and verification](V08_VERIFICATION.md). Adds an independent offline Elite Breach/Abyss solver to the existing application; Hunter, navigation, source fingerprints and telemetry remain unchanged. Historical sections below remain applicable to those engines.
+
 # v0.7 implementation audit
 
 The user's revised milestone is navigation reliability and a developer-authorized live companion; exhaustive scanning is deferred. See [the current verification and implementation record](V07_VERIFICATION.md) and [upstream integration proposal](../integration/DFO_UPSTREAM_PROPOSAL.md). Historical release records below are preserved.

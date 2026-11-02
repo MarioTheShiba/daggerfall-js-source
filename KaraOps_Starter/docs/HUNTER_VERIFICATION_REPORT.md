@@ -1,3 +1,5 @@
+Current release addition (2026-11-02): [v0.8 Orrery verification](V08_VERIFICATION.md). All 105 retained automated tests passed, plus 10 new Orrery tests; packaged UI checks also passed. No game-runtime/live-detection claim. Historical records below are retained.
+
 # v0.7 verification report
 
 The user's revised milestone is navigation reliability and a developer-authorized live companion; exhaustive scanning is deferred. See [the current verification and implementation record](V07_VERIFICATION.md) and [upstream integration proposal](../integration/DFO_UPSTREAM_PROPOSAL.md). Historical release records below are preserved.
