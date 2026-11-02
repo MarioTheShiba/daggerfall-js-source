@@ -1,0 +1,14 @@
+{
+  "repository": "https://github.com/Lattymoy/daggerfall-js-source",
+  "checked": "2026-11-02",
+  "branch": "main",
+  "blobs": {
+    "src/net/eliteGates/egBrain.js": "39d2482cc64d5b743d4d786aa15e48beca3e633b",
+    "src/net/eliteGates/egLaw.js": "ba78c7c29e7d9be2658b7095b7e761f617fe142d",
+    "src/net/eliteGates/egRun.js": "8799cff046a65da216fd89d25a0b28b985a3d180",
+    "src/net/superDungeon/sdBrain.js": "7e54934c9bd3cc3a00431b04a7564eadbeb0cc9d",
+    "src/net/superDungeon/sdMarks.js": "f00e321349cd5a22a84a7c4ce0747d6afc8765ba",
+    "src/scenes/eliteGates/egOrrery.js": "5b3e095c3c36c40f819bd4105d66d40ee3457e46",
+    "src/systems/eliteGates/spireOrrery.js": "814992bdf05fcf94ad5b1ce37a1681752bd29562"
+  }
+}

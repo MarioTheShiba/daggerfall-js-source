@@ -1,0 +1,36 @@
+// Drives KaraOps' own packaged UI only. Never connects to or drives the game.
+import { _electron as electron } from 'playwright'
+import assert from 'node:assert/strict'
+import {mkdirSync,readFileSync,writeFileSync,copyFileSync} from 'node:fs'
+import {resolve} from 'node:path'
+import {logic as L} from './orrery-loader.mjs'
+const dir=resolve('release/verification/v08/ui'),profile=resolve(dir,'KaraOpsData')
+mkdirSync(profile,{recursive:true});copyFileSync('release/KaraOpsData/settings.json',resolve(profile,'settings.json'))
+const before=readFileSync(resolve(profile,'settings.json'),'utf8'),env={...process.env,PORTABLE_EXECUTABLE_DIR:dir};delete env.ELECTRON_RUN_AS_NODE;delete env.ELECTRON_RENDERER_URL
+const executablePath=resolve('release/win-unpacked/KaraOps.exe')
+let app,page;const errors=[],requests=[]
+async function launch(){app=await electron.launch({executablePath,env,timeout:60000});page=await app.firstWindow();page.on('pageerror',e=>errors.push(String(e)));page.on('request',r=>{if(/^(https?|wss?):/.test(r.url()))requests.push(r.url())});await page.getByRole('navigation').getByRole('button',{name:'Orrery Solver'}).click()}
+async function fill(name,value){await page.getByRole('spinbutton',{name,exact:true}).fill(String(value))}
+async function clocks(values){for(let i=0;i<6;i++)await fill(`${L.STONES[i]} current hour`,values[i])}
+async function expectText(text){await page.getByText(text,{exact:true}).waitFor({timeout:10000})}
+try{
+ await launch();await page.evaluate(()=>localStorage.removeItem('karaops.orrery.v08'));await page.reload();await page.getByRole('navigation').getByRole('button',{name:'Orrery Solver'}).click()
+ await page.getByRole('textbox',{name:'Breach seed',exact:true}).fill('123');await fill('Hall number',8);await page.getByRole('button',{name:'Generate fresh puzzle',exact:true}).click();let p=L.elitePuzzleOf(123,8);await expectText(`${p.turns} turns remaining`)
+ const first=p.steps[0],after=L.turnHours(p.gear,p.current,first.stone,first.direction==='RIGHT'?1:-1);await page.getByRole('button',{name:`I turned ${first.name} ${first.direction} once`,exact:true}).click();await expectText(`${p.turns-1} turns remaining`);await expectText('Hall 8 · Circle 2');await page.getByRole('button',{name:'Edit setup and clocks',exact:true}).click();for(let i=0;i<6;i++)assert.equal(await page.getByRole('spinbutton',{name:`${L.STONES[i]} current hour`,exact:true}).inputValue(),String(L.hourShown(after[i])))
+ await page.getByRole('navigation').getByRole('button',{name:/Overview$/}).click();await page.getByRole('navigation').getByRole('button',{name:'Orrery Solver'}).click();await expectText(`${p.turns-1} turns remaining`)
+ const changed=after.slice();changed[0]=(changed[0]+1)%12;await clocks(changed.map(L.hourShown));await page.getByRole('alert').filter({hasText:'Inputs changed'}).waitFor();await page.getByRole('button',{name:'Recalculate from current hours',exact:true}).click();const partial=L.elitePuzzleOf(123,8,0,changed);await expectText(`${partial.turns} turns remaining`)
+ await fill('Used fray',47);await page.getByRole('button',{name:'Recalculate from current hours',exact:true}).click();await page.getByRole('alert').filter({hasText:'Shortest route exceeds'}).waitFor();assert.equal(await page.getByRole('button',{name:/I turned/}).isDisabled(),true)
+ await fill('Hall number',1);await page.getByRole('button',{name:'Generate fresh puzzle',exact:true}).click();await page.getByRole('alert').filter({hasText:'not an Athenaeum'}).waitFor()
+ await page.getByRole('button',{name:'Abyss Dungeon',exact:true}).click();await page.getByRole('textbox',{name:'Abyss slot',exact:true}).fill('sd:123.p0');await page.getByRole('button',{name:'Generate fresh puzzle',exact:true}).click();const abyss=L.puzzleOf(123);await expectText(`${abyss.turns} turns remaining`);await page.getByRole('button',{name:/I turned/}).click();await expectText('Abyss slot 123')
+ // Six actual manual calibration UI measurements, driven only by independently known source turn results.
+ await page.getByRole('button',{name:'Edit setup and clocks',exact:true}).click();await page.getByRole('button',{name:'Manual calibration',exact:true}).click();await fill('Used fray',0);await fill('Manual fray limit',48);let current=abyss.current.slice();await clocks(current.map(L.hourShown));for(let i=0;i<6;i++)await fill(`${L.STONES[i]} target hour`,abyss.target[i])
+ for(let i=0;i<6;i++){await page.getByRole('button',{name:`Capture before ${L.STONES[i]}`,exact:true}).click();current=L.turnHours(abyss.gear,current,i,1);await clocks(current.map(L.hourShown));await page.getByRole('button',{name:'Record observed forward turn',exact:true}).click()}
+ await page.getByRole('button',{name:'Recalculate from current hours',exact:true}).click();const calibrated=L.calibratedPuzzle(current,abyss.target.map(x=>x%12),abyss.gear,48);await expectText(`${calibrated.turns} turns remaining`)
+ for(let i=0;i<calibrated.turns;i++)await page.getByRole('button',{name:/I turned/}).click();await expectText('All six clocks match the targets — Concord.');for(let i=0;i<6;i++)assert.equal(await page.getByRole('spinbutton',{name:`${L.STONES[i]} current hour`,exact:true}).inputValue(),String(abyss.target[i]))
+ await page.screenshot({path:resolve(dir,'manual-concord.png'),fullPage:true});await page.reload();await page.getByRole('navigation').getByRole('button',{name:'Orrery Solver'}).click();assert.equal(await page.getByRole('spinbutton',{name:'Used fray',exact:true}).inputValue(),String(6+calibrated.turns));await page.getByRole('button',{name:'Recalculate from current hours',exact:true}).click();await expectText('All six clocks match the targets — Concord.')
+ // Validate a high-hall rendered result too.
+ await page.getByRole('button',{name:'Elite Breach',exact:true}).click();let high;for(let seed=0;seed<100;seed++)if(L.breachHall(seed,103).kind==='athenaeum'){high=seed;break}assert.notEqual(high,undefined);await page.getByRole('textbox',{name:'Breach seed',exact:true}).fill(String(high));await fill('Hall number',103);await page.getByRole('combobox',{name:'Fraying decree'}).selectOption('2');await page.getByRole('button',{name:'Generate fresh puzzle',exact:true}).click();p=L.elitePuzzleOf(high,103,2);await expectText(`Hall 103 · Circle 21`);await expectText(`${p.turns} turns remaining`);await page.screenshot({path:resolve(dir,'elite-hall103.png'),fullPage:true})
+ assert.deepEqual(errors,[]);assert.deepEqual(requests,[]);assert.equal(readFileSync(resolve(profile,'settings.json'),'utf8'),before)
+ const prefs=await app.evaluate(({BrowserWindow})=>{const p=BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences();return {sandbox:p.sandbox,contextIsolation:p.contextIsolation,nodeIntegration:p.nodeIntegration}});assert.deepEqual(prefs,{sandbox:true,contextIsolation:true,nodeIntegration:false})
+ writeFileSync(resolve(dir,'result.json'),JSON.stringify({passed:true,packaged:true,elite:true,abyss:true,calibration:true,partialRecalculation:true,frayRefusal:true,perPressProgress:true,draftReload:true,highHall:103,highSeed:high,rendererNetworkRequests:requests,errors,settingsUnchanged:true},null,2));console.log('Packaged Orrery UI: all scenarios passed')
+}finally{if(app)await app.close()}

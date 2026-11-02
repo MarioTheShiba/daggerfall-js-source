@@ -2,8 +2,9 @@ import { useEffect, useState, type JSX } from 'react'
 import type { AppInfo, FolderKind, KaraOpsSettings } from '../../shared/types'
 import { DEFAULT_SETTINGS } from '../../shared/types'
 import { Hunter } from './hunter/Hunter'
+import { Orrery } from './orrery/Orrery'
 
-type Page = 'dashboard' | 'dungeons' | 'dragons' | 'map' | 'settings'
+type Page = 'dashboard' | 'dungeons' | 'dragons' | 'map' | 'orrery' | 'settings'
 type ModulePage = Exclude<Page, 'dashboard' | 'settings'>
 
 type NavItem = { page: Page; label: string; icon: string }
@@ -12,13 +13,15 @@ const navItems: NavItem[] = [
   { page: 'dungeons', label: 'Dungeon Hunter', icon: '⌖' },
   { page: 'dragons', label: 'Dragon Radar', icon: '♜' },
   { page: 'map', label: 'World Atlas', icon: '◇' },
+  { page: 'orrery', label: 'Orrery Solver', icon: '◷' },
   { page: 'settings', label: 'Settings', icon: '⚙' }
 ]
 
 const modules: { page: ModulePage; title: string; description: string; icon: string; phase: string }[] = [
   { page: 'dungeons', title: 'Dungeon Hunter', description: 'Find predicted enemies in bounded searches across Tamriel theatres.', icon: '⌖', phase: 'TAMRIEL / BOUNDED' },
   { page: 'dragons', title: 'Dragon Radar', description: 'Reserved for integration of the existing proven locator.', icon: '♜', phase: 'NOT CONNECTED' },
-  { page: 'map', title: 'World Atlas', description: 'A shared map for candidate locations, towns, and routes.', icon: '◇', phase: 'PLANNED' }
+  { page: 'map', title: 'World Atlas', description: 'A shared map for candidate locations, towns, and routes.', icon: '◇', phase: 'PLANNED' },
+  { page: 'orrery', title: 'Orrery Solver', description: 'Source-derived Elite Breach and Abyss clock solutions, with manual calibration.', icon: '◷', phase: 'OFFLINE / MANUAL' }
 ]
 
 function App(): JSX.Element {
@@ -60,7 +63,7 @@ function App(): JSX.Element {
   }
 
   const configured = !!settings.arena2Path && !!settings.dfoSourcePath
-  const selectedModule = modules.find((m) => m.page === page && m.page !== 'dungeons')
+  const selectedModule = modules.find((m) => m.page === page && m.page !== 'dungeons' && m.page !== 'orrery')
 
   return <div className="app-shell">
     <aside className="sidebar">
@@ -108,6 +111,7 @@ function App(): JSX.Element {
         </>}
 
         {page === 'dungeons' && <Hunter/>}
+        <div hidden={page !== 'orrery'}><Orrery/></div>
         {selectedModule && <>
           <div className="eyebrow">MODULE / {selectedModule.phase}</div>
           <h1>{selectedModule.title}</h1>
