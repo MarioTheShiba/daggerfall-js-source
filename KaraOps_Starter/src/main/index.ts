@@ -1,6 +1,7 @@
 import { app, BrowserWindow, clipboard, dialog, ipcMain, session } from 'electron'
 import { HunterService } from './hunter/service'
 import {CompanionService} from './companion/service'
+import {OrreryObserver} from './orrery/observer'
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import {pathToFileURL} from 'node:url'
@@ -26,6 +27,8 @@ const settingsFile = join(dataDir, 'settings.json')
 process.env.KARAOPS_APP_PATH=app.getAppPath()
 const hunter = new HunterService(app.isPackaged ? join(process.resourcesPath, 'hunter/worker.mjs') : join(app.getAppPath(), 'src/main/hunter/worker.mjs'), dataDir)
 const companion=new CompanionService()
+const orrery=new OrreryObserver()
+app.on('before-quit',()=>orrery.stop())
 app.on('before-quit',()=>{void companion.stop()})
 app.on('before-quit', () => { void hunter.cancel() })
 
@@ -57,6 +60,9 @@ function verifySender(event: Electron.IpcMainInvokeEvent): void {
 }
 
 function installIpc(): void {
+  ipcMain.handle('orrery:start',(event,port:unknown)=>{verifySender(event);return orrery.start(port)})
+  ipcMain.handle('orrery:stop',event=>{verifySender(event);return orrery.stop()})
+  ipcMain.handle('orrery:status',event=>{verifySender(event);return orrery.status()})
   ipcMain.handle('companion:start',(event,origin:unknown)=>{verifySender(event);companion.setGeometry(hunter.status().geometry);return companion.start(origin)})
   ipcMain.handle('companion:stop',event=>{verifySender(event);return companion.stop()})
   ipcMain.handle('companion:status',event=>{verifySender(event);companion.setGeometry(hunter.status().geometry);return companion.status()})

@@ -1,12 +1,13 @@
-param([Parameter(Mandatory=$true)][string]$ExecutablePath,[string]$EvidenceDir='release/verification/v08/native')
+param([Parameter(Mandatory=$true)][string]$ExecutablePath,[string]$EvidenceDir='release/verification/v08/native',[string]$ExpectedVersion='0.8.0')
 # Reuse KaraOps' native accessibility harness; no debugging endpoint or game interaction.
 $driver=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'native-hunter.ps1') -Raw
 $prefix=$driver.Substring(0,$driver.IndexOf("`ntry {"))
 $suffix=$driver.Substring($driver.LastIndexOf("`n} catch {"))
 $body=@'
 try {
- $null=Wait-Text 'KaraOps v\s*0.8.0' 30
+ $null=Wait-Text ('KaraOps v\s*'+[Regex]::Escape($ExpectedVersion)) 30
  Click 'Orrery Solver'
+ Click 'Elite Breach'
  Set-Number 'Breach seed' '123';Set-Number 'Hall number' '8'
  Click 'Generate fresh puzzle';$null=Wait-Text 'turns remaining' 15
  $presses=0
@@ -31,4 +32,4 @@ try {
  $record|ConvertTo-Json -Depth 5|Set-Content -LiteralPath (Join-Path $evidence 'native-orrery.json')
  Write-Output ($record|ConvertTo-Json -Depth 5 -Compress)
 '@
-& ([scriptblock]::Create($prefix+$body+$suffix)) -ExecutablePath $ExecutablePath -ExpectedVersion '0.8.0' -EvidenceDir $EvidenceDir
+& ([scriptblock]::Create($prefix+$body+$suffix)) -ExecutablePath $ExecutablePath -ExpectedVersion $ExpectedVersion -EvidenceDir $EvidenceDir

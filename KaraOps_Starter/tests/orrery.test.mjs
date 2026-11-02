@@ -43,5 +43,5 @@ test('invalid identity, hours, unsupported halls and URL inputs fail explicitly'
  assert.equal(L.slotFromText('sd:123.p0'),123);assert.equal(L.slotFromText('https://example.invalid/room/sd:123.p0'),123);assert.equal(L.slotFromText('123'),123);assert.equal(L.slotFromText('eg:123'),null)
 })
 test('Orrery exposes manual observations only, and reuses existing sandbox and data storage',()=>{
- const ui=raw('src/renderer/src/orrery/Orrery.tsx');assert.match(ui,/Live puzzle detection unavailable/);assert.doesNotMatch(ui,/window\.karaops|fetch\(|WebSocket|remote-debugging-port/);assert.match(raw('src/renderer/src/App.tsx'),/<Orrery/);assert.match(ui,/Inputs changed/);assert.match(ui,/I turned/);assert.match(ui,/localStorage/)
+ const ui=raw('src/renderer/src/orrery/Orrery.tsx');assert.match(ui,/actual game-runtime compatibility is not certified/);assert.doesNotMatch(ui,/window\.karaops|fetch\(|WebSocket|remote-debugging-port/);assert.match(raw('src/renderer/src/App.tsx'),/<Orrery/);assert.match(ui,/Inputs changed/);assert.match(ui,/I turned/);assert.match(ui,/localStorage/)
 })

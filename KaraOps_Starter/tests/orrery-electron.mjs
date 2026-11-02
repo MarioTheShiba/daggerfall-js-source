@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import {mkdirSync,readFileSync,writeFileSync,copyFileSync} from 'node:fs'
 import {resolve} from 'node:path'
 import {logic as L} from './orrery-loader.mjs'
-const dir=resolve('release/verification/v08/ui'),profile=resolve(dir,'KaraOpsData')
+const dir=resolve(process.env.KARAOPS_TEST_EVIDENCE??'release/verification/v08/ui'),profile=resolve(dir,'KaraOpsData')
 mkdirSync(profile,{recursive:true});copyFileSync('release/KaraOpsData/settings.json',resolve(profile,'settings.json'))
 const before=readFileSync(resolve(profile,'settings.json'),'utf8'),env={...process.env,PORTABLE_EXECUTABLE_DIR:dir};delete env.ELECTRON_RUN_AS_NODE;delete env.ELECTRON_RENDERER_URL
 const executablePath=resolve('release/win-unpacked/KaraOps.exe')

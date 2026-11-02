@@ -1,0 +1,10 @@
+// A local test debugger transport. Not a game client, relay, or production integration.
+import {createServer} from 'node:http'
+import {createHash} from 'node:crypto'
+export async function cdpFixture(){
+ const sockets=new Set(),commands=[]
+ function send(s,m){const b=Buffer.from(JSON.stringify(m)),head=Buffer.alloc(b.length<126?2:4);head[0]=0x81;if(b.length<126)head[1]=b.length;else{head[1]=126;head.writeUInt16BE(b.length,2)}s.write(Buffer.concat([head,b]))}
+ const server=createServer((req,res)=>{if(req.url!=='/json/list'){res.writeHead(404).end();return}res.setHeader('content-type','application/json');res.end(JSON.stringify([{type:'page',url:'dagger://game/',webSocketDebuggerUrl:`ws://127.0.0.1:${server.address().port}/devtools/page/fixture` }]))})
+ server.on('upgrade',(req,s)=>{if(req.url!=='/devtools/page/fixture'){s.destroy();return}const accept=createHash('sha1').update(req.headers['sec-websocket-key']+'258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64');s.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: '+accept+'\r\n\r\n');sockets.add(s);let buffer=Buffer.alloc(0);s.on('data',b=>{buffer=Buffer.concat([buffer,b]);while(buffer.length>=6){const opcode=buffer[0]&15;let len=buffer[1]&127,pos=2;if(len===126){if(buffer.length<8)return;len=buffer.readUInt16BE(2);pos=4}if(len>65535){s.destroy();return}if(buffer.length<pos+4+len)return;const mask=buffer.subarray(pos,pos+4),data=Buffer.from(buffer.subarray(pos+4,pos+4+len));buffer=buffer.subarray(pos+4+len);for(let i=0;i<data.length;i++)data[i]^=mask[i%4];if(opcode===8){s.end(Buffer.from([0x88,0]));return}if(opcode!==1)continue;const m=JSON.parse(data);commands.push(m);send(s,{id:m.id,...(m.method==='Network.enable'?{result:{}}:{error:{message:'Fixture rejects command'}})})}});s.on('close',()=>sockets.delete(s));s.on('error',()=>{})})
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));return {port:server.address().port,commands,push(method,params){for(const s of sockets)send(s,{method,params})},async close(){for(const s of sockets)s.destroy();await new Promise(r=>server.close(r))}}
+}

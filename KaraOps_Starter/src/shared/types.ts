@@ -12,6 +12,7 @@ export interface AppInfo {
 }
 
 export interface KaraOpsBridge {
+  orrery: import('./orreryTypes').OrreryBridge
   companion: import('./liveTypes').CompanionBridge
   jackpot: import('./jackpotTypes').JackpotBridge
   hunter: import('./hunterTypes').HunterBridge
