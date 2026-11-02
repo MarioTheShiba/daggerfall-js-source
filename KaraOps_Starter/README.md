@@ -1,3 +1,7 @@
+# KaraOps v0.9.1 — local HTTP game connection fix
+
+Fixes connection to DFO launched at a loopback HTTP `/play/index.html` address. Verified the new portable EXE connects to the user's running debugger on **9222**. [Verification and usage](docs/V091_VERIFICATION.md). Portable: `release/KaraOps-0.9.1-Portable.exe`.
+
 # KaraOps v0.9 — opt-in Orrery observation
 
 Adds a read-only port-9222 observer for Elite Breach seed, hall, active decree ranks and accepted clock state. Open **Orrery Solver → Optional DFO connection**, authorize/connect before entering or rejoining the room, then enable **Follow observed Elite puzzle**. You operate every game control manually.

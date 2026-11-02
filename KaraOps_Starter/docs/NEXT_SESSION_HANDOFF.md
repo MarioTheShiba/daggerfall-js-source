@@ -1,3 +1,7 @@
+# Current update — v0.9.1 connection fix
+
+Read [V091_VERIFICATION.md](V091_VERIFICATION.md) first. The actual DFO page uses loopback HTTP `/play/index.html`; the filter now supports it. Both production observer and final portable EXE connected to the user's real debugger on 9222. Real puzzle-state certification still requires a user-operated new dungeon connection. The older v0.9 endpoint-unavailable finding below is historical.
+
 # Current update — v0.9 Orrery observation
 
 Read [V09_VERIFICATION.md](V09_VERIFICATION.md) first. The user authorized the existing opt-in CDP approach for puzzle observation. It is now implemented and source/fixture-tested, but the real local port-9222 probe could not connect. Actual game-runtime validation remains the next gate. No gameplay commands, game source edits or original asset changes were made. Preserve v0.6/v0.7/v0.8 binaries and user data. Previous handoff sections are historical.

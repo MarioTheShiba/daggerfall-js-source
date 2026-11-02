@@ -22,6 +22,12 @@ test('bad states, duplicate decrees, malformed payloads, wrong identities and en
 test('target filtering rejects title-only impersonation and non-loopback debugger connections',()=>{
  const target={type:'page',url:'dagger://game/',webSocketDebuggerUrl:'ws://127.0.0.1:9222/devtools/page/1'};assert.ok(approvedTarget(target,9222));for(const t of [{...target,url:'dagger://launcher/'},{...target,url:'https://evil.invalid',title:'DFO Online'},{...target,webSocketDebuggerUrl:'ws://evil.invalid:9222/devtools/page/1'},{...target,webSocketDebuggerUrl:'ws://127.0.0.1:9223/devtools/page/1'},{...target,webSocketDebuggerUrl:'ws://user:secret@127.0.0.1:9222/devtools/page/1'}])assert.equal(approvedTarget(t,9222),null)
 })
+test('DFO loopback HTTP launch mode is accepted only at the game entry path',()=>{
+ const t={type:'page',url:'http://127.0.0.1:47831/play/index.html',webSocketDebuggerUrl:'ws://127.0.0.1:9222/devtools/page/game'}
+ for(const host of ['127.0.0.1','localhost','[::1]'])assert.ok(approvedTarget({...t,url:`http://${host}:47831/play/index.html`},9222))
+ for(const url of ['http://evil.invalid:47831/play/index.html','http://127.0.0.1:47831/launcher/index.html','http://127.0.0.1:47831/','http://user:secret@127.0.0.1:47831/play/index.html'])assert.equal(approvedTarget({...t,url},9222),null)
+ assert.equal(approvedTarget({...t,type:'worker'},9222),null)
+})
 test('opt-in observer performs only Network.enable, follows matching events, clears on stop and rejects ambiguous targets',async()=>{
  const RealWS=globalThis.WebSocket;let socket;const commands=[];class Fake extends EventTarget{constructor(){super();socket=this}send(s){commands.push(JSON.parse(s))}close(){this.dispatchEvent(new Event('close'))}emit(m){this.dispatchEvent(new MessageEvent('message',{data:JSON.stringify(m)}))}}
  globalThis.WebSocket=Fake;let targets=1;const server=createServer((req,res)=>{assert.equal(req.url,'/json/list');res.end(JSON.stringify(Array.from({length:targets},()=>({type:'page',url:'dagger://game/',webSocketDebuggerUrl:`ws://127.0.0.1:${server.address().port}/devtools/page/1`}))));});await new Promise(r=>server.listen(0,'127.0.0.1',r));const o=new OrreryObserver()

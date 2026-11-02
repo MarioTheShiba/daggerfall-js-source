@@ -7,7 +7,7 @@ import {cdpFixture} from './orrery-cdp-fixture.mjs'
 import {logic as L} from './orrery-loader.mjs'
 import {egBreachNew,egStateOf} from '../../src/net/eliteGates/egBrain.js'
 import {egFightState} from '../../src/net/eliteGates/egBodies.js'
-const f=await cdpFixture(),dir=resolve('release/verification/v09/observer-ui'),profile=resolve(dir,'KaraOpsData');mkdirSync(profile,{recursive:true});copyFileSync('release/KaraOpsData/settings.json',resolve(profile,'settings.json'));const before=readFileSync(resolve(profile,'settings.json'),'utf8')
+const f=await cdpFixture({httpGame:true}),dir=resolve(process.env.KARAOPS_OBSERVER_EVIDENCE??'release/verification/v09/observer-ui'),profile=resolve(dir,'KaraOpsData');mkdirSync(profile,{recursive:true});copyFileSync('release/KaraOpsData/settings.json',resolve(profile,'settings.json'));const before=readFileSync(resolve(profile,'settings.json'),'utf8')
 const env={...process.env,PORTABLE_EXECUTABLE_DIR:dir};delete env.ELECTRON_RUN_AS_NODE;delete env.ELECTRON_RENDERER_URL
 let app;const errors=[]
 try{
