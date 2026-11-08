@@ -30,10 +30,10 @@ export class OrreryObserver {
    if(targets.length!==1)throw Error('Unsupported target count')
    diagnostic='Game page found, but its local debugger WebSocket could not be opened.'
    const socket=new WebSocket(targets[0]!);this.ws=socket
-   socket.addEventListener('open',()=>{if(gen!==this.generation){socket.close();return}socket.send(JSON.stringify({id:1,method:'Network.enable',params:{maxTotalBufferSize:1048576,maxResourceBufferSize:262144,maxPostDataSize:0}}))})
-   socket.addEventListener('message',event=>{if(gen!==this.generation)return;const s=typeof event.data==='string'?event.data:'';if(s.length>1048576){this.session.clear();return}try{const m=JSON.parse(s);if(m.id===1){if(m.error){this.fail('DFO refused observation; reconnect manually.');return}this.phase='watching'}else if(this.phase==='watching'&&typeof m.method==='string')this.session.event(m.method,m.params)}catch{this.session.clear()}})
+   socket.addEventListener('open',()=>{if(gen!==this.generation){socket.close();return}this.message='Game debugger connected; waiting for Network.enable acknowledgement.';socket.send(JSON.stringify({id:1,method:'Network.enable',params:{maxTotalBufferSize:1048576,maxResourceBufferSize:262144,maxPostDataSize:0}}))})
+   socket.addEventListener('message',event=>{if(gen!==this.generation)return;const s=typeof event.data==='string'?event.data:'';if(s.length>1048576){this.session.transportError();return}try{const m=JSON.parse(s);if(m.id===1){if(m.error){this.fail('DFO refused observation; reconnect manually.');return}this.phase='watching'}else if((this.phase==='watching'||this.phase==='connecting')&&typeof m.method==='string')this.session.event(m.method,m.params)}catch{this.session.transportError()}})
    const timer=setTimeout(()=>{if(gen===this.generation&&this.phase==='connecting')this.fail('Debugger handshake timed out. Reconnect manually.')},3000);timer.unref()
-   socket.addEventListener('close',()=>{clearTimeout(timer);if(gen===this.generation)this.fail('Debugger disconnected. Automatic state cleared; reconnect manually.')})
+   socket.addEventListener('close',()=>{clearTimeout(timer);if(gen===this.generation)this.fail('Debugger disconnected. Automatic state cleared. Reconnect observer, then manually rejoin the room; old socket creation cannot be replayed.')})
    socket.addEventListener('error',()=>{if(gen===this.generation)this.fail('Debugger connection failed. Reconnect manually.')})
   }catch{if(gen===this.generation)this.fail(diagnostic)}
   return this.status()
